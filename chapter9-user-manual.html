@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chapter 9 Manual &mdash; Multi-Valued Dimensions and Bridges</title>
+  <meta name="description" content="Beginner-friendly manual explaining Chapter 9 of Star Schema: The Complete Reference." />
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+    body {
+      margin: 0;
+      padding: 0 1.5rem 3rem;
+      background: #fff;
+      color: #111;
+    }
+    header {
+      padding: 2rem 0 1rem;
+      border-bottom: 3px solid #1b4965;
+    }
+    nav ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    nav a {
+      text-decoration: none;
+      color: #1b4965;
+      font-weight: 600;
+    }
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding-top: 1.5rem;
+    }
+    section {
+      margin-top: 2.5rem;
+    }
+    h1, h2, h3, h4 {
+      color: #0b3954;
+      line-height: 1.3;
+    }
+    .callout {
+      border-left: 4px solid #1b4965;
+      background: #f2f7fb;
+      padding: 0.75rem 1rem;
+      margin: 1rem 0;
+    }
+    .callout h4 {
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #1b4965;
+    }
+    figure {
+      background: #f8fbff;
+      border: 1px solid #c8daea;
+      padding: 1rem;
+      margin: 1.5rem 0;
+    }
+    figcaption {
+      font-weight: 600;
+      color: #0b3954;
+    }
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      background: #f5f5f5;
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+    }
+    ul, ol {
+      padding-left: 1.2rem;
+    }
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 2px solid #1b4965;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Multi-Valued Dimensions and Bridges &mdash; Beginner&#8217;s Manual</h1>
+    <p>This manual translates Chapter 9 of <em>Star Schema: The Complete Reference</em> into plain language for rookie programmers. You will learn why multi-valued dimensions and attributes break the usual star schema pattern, how bridge tables restore flexibility, and how to avoid accuracy traps.</p>
+    <nav aria-label="Table of contents">
+      <ul>
+        <li><a href="#foundation">1. Foundation</a></li>
+        <li><a href="#multi-valued-dimensions">2. Multi-Valued Dimensions</a></li>
+        <li><a href="#multi-valued-attributes">3. Multi-Valued Attributes</a></li>
+        <li><a href="#implementation">4. Implementation Playbook</a></li>
+        <li><a href="#diagrams">5. Diagram Guide</a></li>
+        <li><a href="#faq">6. Quick Answers</a></li>
+        <li><a href="#summary">7. Recap</a></li>
+        <li><a href="#reading">8. Further Reading</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section id="foundation">
+      <h2>1. Foundation &mdash; Why This Chapter Matters</h2>
+      <p>Chapter 9 tackles situations where one fact relates to multiple members of the same dimension, or a single dimension row needs several values for a specific attribute. Think of sales orders handled by several salespeople or customers that operate in several industries. The textbook calls bridges a &ldquo;double-edged sword&rdquo;: they unlock powerful analytics but make it easier to miscount facts. This manual keeps the power while showing you how to stay safe.</p>
+
+      <h3>1.1 Core Vocabulary</h3>
+      <dl>
+        <dt>Fact table</dt>
+        <dd>Holds measurements (such as order dollars) and foreign keys to each dimension.</dd>
+        <dt>Dimension table</dt>
+        <dd>Describes the context around a fact (product, day, salesperson, customer, etc.).</dd>
+        <dt>One-to-many relationship</dt>
+        <dd>Each fact refers to exactly one row in each dimension. This is the normal star schema setup.</dd>
+        <dt>Multi-valued dimension</dt>
+        <dd>A dimension where a single fact can link to any number of rows (e.g., an order credited to three salespeople).</dd>
+        <dt>Multi-valued attribute</dt>
+        <dd>A dimension attribute (like industry or phone number) that can have several values for the same dimension row.</dd>
+        <dt>Bridge table</dt>
+        <dd>A helper (association) table that connects facts to a flexible set of dimension rows or connects a dimension row to a flexible set of attribute values.</dd>
+        <dt>Type 1 change</dt>
+        <dd>Overwrite history with the newest value.</dd>
+        <dt>Type 2 change</dt>
+        <dd>Create a new dimension row (new surrogate key) to preserve history.</dd>
+      </dl>
+
+      <h3>1.2 Standard Query Pattern (Before Things Get Weird)</h3>
+      <p>Under normal circumstances, analysts can aggregate a fact column by any dimension attribute because every fact points to exactly one value for that attribute. Example:</p>
+      <code>SELECT product.brand_name, SUM(order_facts.order_dollars)
+FROM product
+JOIN order_facts ON product.product_key = order_facts.product_key
+GROUP BY product.brand_name;</code>
+      <p>This works only because every order matches exactly one brand. Once a fact can point to several dimension rows, this simple pattern no longer works without modifications.</p>
+    </section>
+
+    <section id="multi-valued-dimensions">
+      <h2>2. Multi-Valued Dimensions</h2>
+      <p>Some facts legitimately involve more than one member of a dimension. Example: several salespeople collaborate on a single order. Chapter 9 explores two approaches: flatten (simplify) the relationship or insert a bridge.</p>
+
+      <figure id="fig-9-1">
+        <figcaption>Figure 9-1 &mdash; Normal one-to-many relationships</figcaption>
+        <p>The diagram in the ebook shows a fact table in the center with crow&#8217;s feet pointing to dimension tables (Product, Salesperson, Customer, Day). Each fact row joins to exactly one row per dimension, and every dimension value can point to many facts.</p>
+      </figure>
+
+      <figure id="fig-9-2">
+        <figcaption>Figure 9-2 &mdash; What happens when facts need several dimension members</figcaption>
+        <p>The picture introduces a question mark near the Salesrep link to highlight the uncertainty when an order involves more than one salesperson. The original one-to-many pattern breaks, prompting the need for new design choices.</p>
+      </figure>
+
+      <h3>2.1 Option A: Simplify the Relationship (Flatten It)</h3>
+      <p>Flattening breaks the many-to-many relationship into several one-to-many relationships by giving the fact table multiple foreign keys that point to the same dimension (roles). One key becomes <strong>primary_salesrep_key</strong>, another <strong>secondary_salesrep_key</strong>, and so on.</p>
+
+      <figure id="fig-9-3">
+        <figcaption>Figure 9-3 &mdash; Fact table with primary and secondary salesrep roles</figcaption>
+        <p>The diagram shows the <code>order_facts</code> table with two separate foreign keys pointing to aliases of the <code>salesrep</code> dimension (Primary and Secondary). If an order has only one salesperson, the secondary key points to a &ldquo;not applicable&rdquo; row.</p>
+      </figure>
+
+      <div class="callout">
+        <h4>Flattening Pros and Cons</h4>
+        <ul>
+          <li><strong>Pros:</strong> Still uses simple joins; easy if collaboration is rare and capped at a small number.</li>
+          <li><strong>Cons:</strong> Reporting must scan multiple columns (harder SQL, duplicate queries); cannot handle more collaborators than predefined columns.</li>
+        </ul>
+      </div>
+
+      <h3>2.2 Option B: Use a Bridge Table</h3>
+      <p>Bridging keeps the fact grain intact while allowing any number of related dimension members. The fact table stores a <strong>group key</strong>. The bridge table lists every member of that group.</p>
+
+      <figure id="fig-9-4">
+        <figcaption>Figure 9-4 &mdash; Bridge table linking orders to an arbitrary set of salesreps</figcaption>
+        <p>The <code>sales_group</code> table holds two columns: <code>group_key</code> and <code>salesrep_key</code>. For the Ann&nbsp;+&nbsp;Henry example, the bridge contains two rows with the same group_key and different salesrep keys. The fact table carries the single group_key.</p>
+      </figure>
+
+      <h4>2.2.1 How to Build and Load the Bridge</h4>
+      <ol>
+        <li>During ETL, detect every unique collaboration (the ordered set of salesreps) for each fact.</li>
+        <li>If that collaboration already has a group_key, reuse it; otherwise create a new group and populate the bridge with one row per member.</li>
+        <li>Store the group_key in the fact row, even when the group has only one member.</li>
+      </ol>
+      <p>This design gracefully handles two, three, or even fifteen collaborators without redesigning the fact table.</p>
+
+      <div class="callout">
+        <h4>Tip</h4>
+        <p>The bridge-to-fact relationship is many-to-many: one group can appear in many facts, and one fact can link to a group that lists multiple members. Some tools expect every join to be primary-key-to-foreign-key, so you may need workarounds (explained later).</p>
+      </div>
+
+      <h3>2.3 Reporting with Bridges: Power vs. Double-Counting</h3>
+      <p>When you join a fact table through a bridge, the fact row repeats once per group member. That behavior lets you build &ldquo;impact&rdquo; reports (e.g., &ldquo;Total order dollars credited to each salesperson&rdquo;), but it also invites accidental double-counting.</p>
+
+      <div class="callout">
+        <h4>Safe Query Pattern</h4>
+        <p>Always group by a unique column from the bridged dimension (usually the natural key or surrogate key). Never aggregate at a higher level (like region) unless you understand that repeated rows will inflate the result.</p>
+      </div>
+
+      <p><strong>Example of risky SQL</strong> (counts the same order twice because Ann and Henry share region &ldquo;East&rdquo;):</p>
+      <code>SELECT salesrep.region, SUM(order_facts.order_dollars)
+FROM order_facts
+JOIN sales_group ON sales_group.sales_group_key = order_facts.sales_group_key
+JOIN salesrep ON salesrep.salesrep_key = sales_group.salesrep_key
+GROUP BY salesrep.region;</code>
+
+      <h4>2.3.1 When Double-Counting Is Intended</h4>
+      <p>Impact reports legitimately credit the full order amount to every participant. The key is to resist the temptation to compute a grand total from the same query. Each row is meaningful; the overall total is not.</p>
+
+      <h4>2.3.2 Mitigation Tactics</h4>
+      <ul>
+        <li><strong>Allocation factor (if it exists):</strong> Store a percentage per member inside the bridge and multiply each fact by that percentage before summing.</li>
+        <li><strong>Primary-member shortcut:</strong> Keep a direct one-to-many relationship (e.g., <code>primary_salesrep_key</code>) for safe self-service reporting, while hiding the bridge from casual users.</li>
+        <li><strong>Training and tooling:</strong> Provide pre-built views that already join through the bridge and apply the correct grouping logic.</li>
+      </ul>
+
+      <figure id="fig-9-5">
+        <figcaption>Figure 9-5 &mdash; Bridge with allocation factor</figcaption>
+        <p>The ebook example assigns 75% of an order to Ann and 25% to Henry. Queries must compute <code>SUM(order_dollars * allocation)</code> so that the allocated pieces always add back up to the original fact.</p>
+      </figure>
+
+      <div class="callout">
+        <h4>Allocation Reality Check</h4>
+        <p>Allocation only works if the business supplies a legitimate rule. Technical teams should never invent percentages. If clean allocations exist upstream (for instance, the order entry system records the split), consider redefining the fact grain to &ldquo;allocated order lines&rdquo; and avoid a bridge altogether.</p>
+      </div>
+
+      <figure id="fig-9-6">
+        <figcaption>Figure 9-6 &mdash; Supplementing the bridge with a primary member</figcaption>
+        <p>The diagram adds <code>primary_salesrep_key</code> to <code>order_facts</code>. The shaded bridge tables are hidden from novice users. Analysts can still access the bridge when collaboration must be explored.</p>
+      </figure>
+
+      <h3>2.4 Managing Slow Changes with Bridges</h3>
+      <p>Bridges behave like snowflakes, so slow-change rules apply to every component.</p>
+      <ul>
+        <li><strong>Type 1 change to a dimension row:</strong> Simply overwrite; the row stays linked in existing groups.</li>
+        <li><strong>Type 2 change to a dimension row:</strong> A new surrogate key is issued; the next time that person collaborates, the ETL must create a new group that contains the new surrogate key.</li>
+        <li><strong>Group as its own entity:</strong> If the group has attributes (a name, a start date), you may need to treat the group like a dimension and apply Type 1 or Type 2 logic when the group changes.</li>
+        <li><strong>Membership changes:</strong>
+          <ul>
+            <li>Type 1 response: update the bridge rows (removing or adding memberships) so past facts reflect the new membership.</li>
+            <li>Type 2 response: create a brand-new group and update future facts to reference it, preserving the historical membership.</li>
+          </ul>
+        </li>
+        <li><strong>Time-stamping membership:</strong> Only necessary when you need a point-in-time view of groups. In that case, each group/version gets its own date range.</li>
+      </ul>
+
+      <h3>2.5 Working with Tooling Limits</h3>
+      <p>Some modeling and BI tools insist that every join be a foreign key pointing at a primary key. The fact-to-bridge join breaks that expectation. Chapter 9 shows how to appease such tools by adding an explicit intersect table.</p>
+
+      <figure id="fig-9-7">
+        <figcaption>Figure 9-7 &mdash; Resolving the many-to-many relationship</figcaption>
+        <p>The solution splits the bridge into two tables: <code>sales_group</code> now contains only <code>sales_group_key</code> (one row per group), and <code>group_membership</code> maps group keys to salesrep keys. Although redundant, this satisfies software that requires a declared primary-key-to-foreign-key relationship.</p>
+      </figure>
+
+      <div class="callout">
+        <h4>Warning</h4>
+        <p>Do <em>not</em> try to force a one-to-many relationship by creating a new group for every fact even when the same collaboration happens twice. You will bloat the bridge and still risk double-counting.</p>
+      </div>
+    </section>
+
+    <section id="multi-valued-attributes">
+      <h2>3. Multi-Valued Attributes</h2>
+      <p>Sometimes the challenge is inside a single dimension row. Customers may have multiple industries, students may have multiple guardians, accounts may have multiple holders. Chapter 9 reuses the same toolkit: simplify when possible, or bridge the attribute via an outrigger.</p>
+
+      <figure id="fig-9-8">
+        <figcaption>Figure 9-8 &mdash; Customer industry as a multi-valued attribute</figcaption>
+        <p>The diagram highlights a <code>customer_industry</code> attribute that can list more than one value for the same customer. Company C is both Manufacturing and Services.</p>
+      </figure>
+
+      <h3>3.1 Simplify (Flatten) the Attribute</h3>
+      <p>Flattening transposes the attribute into multiple columns such as <code>industry_1</code>, <code>industry_2</code>, <code>industry_3</code>.</p>
+
+      <figure id="fig-9-9">
+        <figcaption>Figure 9-9 &mdash; Flattened industry columns</figcaption>
+        <p>The customer table now has three industry columns. This works only when a fixed, small number of values is acceptable, each column has a clear role, and analysts won&#8217;t need to filter or group facts using values that could appear in any column.</p>
+      </figure>
+
+      <div class="callout">
+        <h4>Checklist before flattening</h4>
+        <ul>
+          <li>The business agrees on a maximum number of values.</li>
+          <li>Each slot has a clear meaning (home phone vs office phone vs mobile phone).</li>
+          <li>Reports will not need to search for &ldquo;all rows with value X&rdquo; regardless of which column holds it.</li>
+        </ul>
+      </div>
+
+      <h3>3.2 Attribute Bridge with an Outrigger</h3>
+      <p>When flattening is too limiting, bridge the attribute instead.</p>
+      <ol>
+        <li>Move the multi-valued details (industries, skills, diagnoses) into an <strong>outrigger</strong> table with its own surrogate key.</li>
+        <li>Create a bridge table with <strong>group_key</strong> and <strong>outrigger_key</strong>.</li>
+        <li>Add the <strong>group_key</strong> to the main dimension row. Every unique combination of attribute values gets one group.</li>
+      </ol>
+
+      <figure id="fig-9-10">
+        <figcaption>Figure 9-10 &mdash; Attribute bridge between Customer and Industry</figcaption>
+        <p>The <code>customer</code> table stores <code>industry_group_key</code>. The <code>industry_group</code> bridge lists each industry_key belonging to the group, and the <code>industry</code> outrigger holds descriptive data. Company C points to group 100, which in turn lists manufacturing and services.</p>
+      </figure>
+
+      <div class="callout">
+        <h4>Benefits</h4>
+        <p>Unlimited attribute values, simple filtering (just join to the outrigger), and reuse of groups when multiple customers share the same combination.</p>
+      </div>
+
+      <h3>3.3 Double-Counting with Attribute Bridges</h3>
+      <p>Joining a fact table to the bridged attribute repeats the fact once per attribute value. Example: Company C&#8217;s $10,000 order appears twice when grouped by industry (Manufacturing and Services). Just like with dimension bridges, double-counting may be intentional for impact reports, but grand totals become meaningless.</p>
+
+      <h3>3.4 Hide the Bridge with a Primary Member Flag</h3>
+      <p>Add a <strong>primary flag</strong> (e.g., <code>primary_industry</code>) to the bridge or copy the primary value into the base dimension. Create a view that exposes only the primary attribute to novice users, while trained analysts can access the full bridge when they need the richer picture.</p>
+
+      <h3>3.5 Handling Changes</h3>
+      <p>Changes can happen in three places: the outrigger, the group membership, and the base dimension.</p>
+      <ul>
+        <li><strong>Outrigger changes:</strong> Type 1 updates simply overwrite. Type 2 changes require new outrigger rows and usually trigger Type 2 changes in every dimension row that references them, plus new groups in the bridge.</li>
+        <li><strong>Group membership changes:</strong> Treat membership as an attribute of the dimension. A Type 1 change swaps the <code>group_key</code> on the existing dimension row; a Type 2 change creates a new dimension row with a new group. Flag the <code>group_key</code> as Type 2 in your documentation so developers know to create a new row whenever the combination of values changes.</li>
+        <li><strong>Dimension-only changes:</strong> If other attributes change (say, customer address) but the multi-valued attribute stays the same, you can reuse the existing group when inserting the new dimension row.</li>
+        <li><strong>Time-stamping:</strong> Usually the timestamps on the dimension row itself are enough. Time-stamping each bridge row forces you to create separate groups per customer even when they share the same attribute mix, so only do this when you genuinely need it.</li>
+      </ul>
+
+      <div class="callout">
+        <h4>Naming Pitfall</h4>
+        <p>When the outrigger already represents a &ldquo;group&rdquo; (such as employee committees), avoid calling the bridge a group table as well. Refer to it as an association or membership table to keep everyone oriented.</p>
+      </div>
+
+      <h3>3.6 Variations and Tooling Tricks</h3>
+      <ul>
+        <li><strong>Fold the outrigger into the bridge:</strong> If there are only one or two attribute columns, you can store them directly in the bridge. This cuts down on joins at the cost of redundant attribute values.</li>
+        <li><strong>Resolve many-to-many relationships:</strong> As with dimension bridges, some tools require a primary-key table and a separate membership/intersect table.</li>
+        <li><strong>Use a plain intersect table instead of group reuse:</strong> Drop the group key from the dimension and create a table that lists <code>customer_key</code> plus <code>industry_key</code>. This is simpler but prevents you from reusing the same combination across customers.</li>
+        <li><strong>Bridge as fact table:</strong> Many BI tools will classify the bridge as a fact table because it mostly contains foreign keys. That is acceptable, but you must allow a controlled exception to the usual &ldquo;never join fact tables&rdquo; rule introduced earlier in the book. Joining the fact table to the bridge is intentional here.</li>
+      </ul>
+
+      <figure id="fig-9-11">
+        <figcaption>Figure 9-11 &mdash; Group table plus membership table</figcaption>
+        <p>The customer-industry example is reworked so <code>industry_group</code> has only one column (the key), while <code>group_membership</code> links group keys to industry keys. Everything else stays the same, but modeling tools that insist on primary-key relationships are satisfied.</p>
+      </figure>
+    </section>
+
+    <section id="implementation">
+      <h2>4. Implementation Playbook</h2>
+      <p>Use this beginner-friendly checklist to move from requirements to a safe bridge design.</p>
+      <ol>
+        <li><strong>Clarify the reporting need.</strong> Identify specific questions analysts must answer. Are they measuring individual impact, group totals, or both?</li>
+        <li><strong>Determine relationship frequency.</strong> How often does the multi-valued situation occur? If rare and limited, flattening may be good enough.</li>
+        <li><strong>Select a strategy.</strong>
+          <ul>
+            <li>Flatten (multiple roles or columns) when the maximum number of values is known and small.</li>
+            <li>Bridge when you need unlimited flexibility or when analysts must filter/group by any of the participating values.</li>
+          </ul>
+        </li>
+        <li><strong>Design the schema.</strong>
+          <ul>
+            <li>Define surrogate keys for dimensions, outriggers, and groups.</li>
+            <li>Document Type 1 vs Type 2 handling for every attribute involved, especially the group key.</li>
+            <li>Add a primary-member shortcut if casual reporting needs a safe one-to-many relationship.</li>
+          </ul>
+        </li>
+        <li><strong>Plan ETL steps.</strong>
+          <ul>
+            <li>Generate canonical representations of each collaboration or attribute combination (sorted lists, deduplicated members) so you can reuse group keys.</li>
+            <li>Create groups for single-member cases so that every fact or dimension row always points to a valid group.</li>
+            <li>Audit for orphaned group keys and unused groups.</li>
+          </ul>
+        </li>
+        <li><strong>Guard against double-counting.</strong>
+          <ul>
+            <li>Create conformed views that pre-join the bridge and multiply by allocation factors when required.</li>
+            <li>Educate users: impact reports are fine; grand totals over repeated rows are not.</li>
+          </ul>
+        </li>
+        <li><strong>Respect tooling limitations.</strong> If your modeling or BI software can&#8217;t declare many-to-many relationships, add a separate membership table or declare the bridge as a fact table.</li>
+        <li><strong>Test everything.</strong>
+          <ul>
+            <li>Unit-test ETL logic for group creation and reuse.</li>
+            <li>Write regression tests proving that single-member groups behave like standard one-to-many relationships.</li>
+            <li>Validate that allocation totals sum back to the original facts.</li>
+          </ul>
+        </li>
+        <li><strong>Govern access.</strong>
+          <ul>
+            <li>Expose simplified views to novices.</li>
+            <li>Require training before granting direct access to bridge tables.</li>
+          </ul>
+        </li>
+      </ol>
+    </section>
+
+    <section id="diagrams">
+      <h2>5. Diagram Guide (Textual Descriptions)</h2>
+      <p>The ebook includes eleven figures. Since images are not reproduced here, use the summaries below to visualize them.</p>
+      <ul>
+        <li><strong>Figure 9-1:</strong> Standard star with crow&rsquo;s feet showing one-to-many from dimensions to facts.</li>
+        <li><strong>Figure 9-2:</strong> Same star but a question mark at the salesrep link highlighting multiple salesrep participation.</li>
+        <li><strong>Figure 9-3:</strong> Fact table holding primary and secondary foreign keys that both point to the <code>salesrep</code> table, representing the flattened role approach.</li>
+        <li><strong>Figure 9-4:</strong> Fact table pointing to a <code>sales_group</code> bridge that in turn points to <code>salesrep</code>; the instance table shows Ann and Henry sharing group key 1.</li>
+        <li><strong>Figure 9-5:</strong> Same as Figure 9-4 but the bridge includes an allocation column and an example query multiplying the fact amount by the allocation.</li>
+        <li><strong>Figure 9-6:</strong> Bridge plus a direct <code>primary_salesrep_key</code>, with annotations indicating that shaded tables are reserved for advanced analysis.</li>
+        <li><strong>Figure 9-7:</strong> Bridge split into <code>sales_group</code> (one column) and <code>group_membership</code> (group-to-member rows) to appease ER modeling tools.</li>
+        <li><strong>Figure 9-8:</strong> Customer dimension with a single <code>customer_industry</code> attribute that needs to store several values for some customers.</li>
+        <li><strong>Figure 9-9:</strong> Flattened customer table with three columns (<code>industry_1</code> .. <code>industry_3</code>) standing in for the multi-valued attribute.</li>
+        <li><strong>Figure 9-10:</strong> Attribute bridge between customer and industry, complete with example data that shows Company C linked to two industries.</li>
+        <li><strong>Figure 9-11:</strong> Resolved many-to-many pattern for industries using a separate membership table.</li>
+      </ul>
+    </section>
+
+    <section id="faq">
+      <h2>6. Quick Answers</h2>
+      <h3>Q1. How do I know whether to flatten or bridge?</h3>
+      <p>Flatten when the number of participants is naturally capped and analysts rarely need to look beyond the primary value. Bridge when you need unlimited flexibility or when analysts must slice data by any participant.</p>
+
+      <h3>Q2. How do I prevent double-counting?</h3>
+      <p>Group by a unique identifier, pre-aggregate with allocation factors when available, and keep the bridge out of novice-facing views. Remember that &ldquo;double-counting&rdquo; in the chapter refers to any situation where the same fact gets counted more than once.</p>
+
+      <h3>Q3. What if my BI tool won&rsquo;t join through a many-to-many?</h3>
+      <p>Create a classical ER-style intersect table (group plus membership) so each join uses a declared primary key, or mark the bridge as a fact table and configure the tool accordingly.</p>
+
+      <h3>Q4. Do I need to timestamp bridge rows?</h3>
+      <p>Only if you must report on the composition of a group at different points in time. In most cases, the effective-date columns on the dimension row already tell you which group membership was active.</p>
+
+      <h3>Q5. Can I reuse bridge groups across different dimension members?</h3>
+      <p>Yes, and you should when the exact combination of members recurs. It reduces data volume. The intersect-only variation removes this reuse but simplifies tooling.</p>
+    </section>
+
+    <section id="summary">
+      <h2>7. Chapter Recap</h2>
+      <ul>
+        <li>Standard star schemas rely on one-to-many relationships; multi-valued dimensions break that assumption.</li>
+        <li>Flattening (multiple roles or multiple columns) is quick but supports only a fixed number of values and complicates reporting.</li>
+        <li>Bridge tables let a fact or dimension point to any number of related rows and keep the SQL simple, but they increase the risk of accidental double-counting.</li>
+        <li>Allocation factors, primary-member shortcuts, and careful user training mitigate the risk.</li>
+        <li>Slowly changing dimensions affect not just attributes but also relationships; expect ripple effects through groups, memberships, and outriggers.</li>
+        <li>Bridge tables often need auxiliary tables (intersect tables) to satisfy tools that only understand primary-key joins.</li>
+        <li>Attribute bridges work just like dimension bridges, except they sit between a dimension and an outrigger.</li>
+        <li>Some tools classify bridge tables as fact tables. That is acceptable, but remember that the resulting fact-to-fact join intentionally causes the Cartesian effect you usually avoid.</li>
+      </ul>
+    </section>
+
+    <section id="reading">
+      <h2>8. Further Reading from Chapter 9</h2>
+      <ul>
+        <li><strong>Multi-Valued Dimensions:</strong> Chapter 13 of <em>The Data Warehouse Toolkit</em> (Kimball &amp; Ross, 2nd ed.) shows a healthcare bridge that links billing facts to multiple diagnoses, including time-stamped membership and allocation.</li>
+        <li><strong>Group Membership History:</strong> The same Kimball example explains how time-stamping group membership requires unique groups per patient, reinforcing the maintenance workload discussed in Chapter 9.</li>
+        <li><strong>Aggregates over Bridges:</strong> Chapter 8 of <em>Mastering Data Warehouse Aggregates</em> (Adamson) discusses how to pre-summarize data safely when bridges are involved.</li>
+        <li><strong>Multi-Valued Attributes:</strong> Chapter 8 of <em>The Data Warehouse Toolkit</em> demonstrates bridging multiple employee skills, and Chapter 9 shows how to model multiple account holders. Both examples align with the attribute-bridge techniques explained above.</li>
+        <li><strong>Concatenated Attributes:</strong> Kimball and Ross also describe an alternative where multiple values are concatenated into a single attribute and parsed via substring searches. Chapter 9 notes that this approach cannot support impact-style grouping and is therefore rarely sufficient.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p>Prepared for Chapter 9 of <em>Star Schema: The Complete Reference</em> (Christopher Adamson, McGraw-Hill, 2010). All terminology, warnings, and techniques mirror the source material, rephrased for novice programmers.</p>
+  </footer>
+</body>
+</html>
