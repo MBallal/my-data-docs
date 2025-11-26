@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 9: Multi-Valued Dimensions and Bridges - A Beginner's Guide</title>
+    <style>
+        :root {
+            --primary-color: #1a365d;
+            --secondary-color: #2c5282;
+            --accent-color: #ed8936;
+            --background-light: #f7fafc;
+            --background-code: #edf2f7;
+            --text-primary: #2d3748;
+            --text-secondary: #4a5568;
+            --border-color: #e2e8f0;
+            --success-color: #38a169;
+            --warning-color: #d69e2e;
+            --danger-color: #e53e3e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.8;
+            color: var(--text-primary);
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 60px 40px;
+            border-radius: 16px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 40px rgba(26, 54, 93, 0.3);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        header .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        header .chapter-number {
+            display: inline-block;
+            background: var(--accent-color);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        nav.toc {
+            background: white;
+            padding: 35px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border-left: 5px solid var(--accent-color);
+        }
+
+        nav.toc h2 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        nav.toc ul {
+            list-style: none;
+        }
+
+        nav.toc > ul > li {
+            margin-bottom: 12px;
+        }
+
+        nav.toc ul ul {
+            margin-left: 25px;
+            margin-top: 8px;
+        }
+
+        nav.toc ul ul li {
+            margin-bottom: 6px;
+        }
+
+        nav.toc a {
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        nav.toc a:hover {
+            color: var(--accent-color);
+        }
+
+        nav.toc ul ul a {
+            font-weight: 400;
+            font-size: 0.95rem;
+        }
+
+        section {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid var(--accent-color);
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            font-size: 1.4rem;
+            margin-top: 35px;
+            margin-bottom: 20px;
+        }
+
+        h4 {
+            color: var(--text-primary);
+            font-size: 1.15rem;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+
+        p {
+            margin-bottom: 18px;
+            color: var(--text-secondary);
+        }
+
+        .intro-text {
+            font-size: 1.1rem;
+            line-height: 1.9;
+            color: var(--text-primary);
+        }
+
+        .definition-box {
+            background: linear-gradient(135deg, #ebf4ff 0%, #c3dafe 100%);
+            border-left: 5px solid var(--secondary-color);
+            padding: 25px 30px;
+            margin: 25px 0;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .definition-box h4 {
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+
+        .definition-box p {
+            margin-bottom: 0;
+            color: var(--text-primary);
+        }
+
+        .warning-box {
+            background: linear-gradient(135deg, #fffaf0 0%, #feebc8 100%);
+            border-left: 5px solid var(--warning-color);
+            padding: 25px 30px;
+            margin: 25px 0;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .warning-box h4 {
+            color: #c05621;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .warning-box h4::before {
+            content: "⚠️ ";
+        }
+
+        .danger-box {
+            background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+            border-left: 5px solid var(--danger-color);
+            padding: 25px 30px;
+            margin: 25px 0;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .danger-box h4 {
+            color: #c53030;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .danger-box h4::before {
+            content: "🚨 ";
+        }
+
+        .tip-box {
+            background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+            border-left: 5px solid var(--success-color);
+            padding: 25px 30px;
+            margin: 25px 0;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .tip-box h4 {
+            color: #276749;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .tip-box h4::before {
+            content: "💡 ";
+        }
+
+        .key-concept {
+            background: linear-gradient(135deg, #faf5ff 0%, #e9d8fd 100%);
+            border: 2px solid #9f7aea;
+            padding: 25px 30px;
+            margin: 25px 0;
+            border-radius: 10px;
+        }
+
+        .key-concept h4 {
+            color: #6b46c1;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .key-concept h4::before {
+            content: "🔑 ";
+        }
+
+        .diagram-container {
+            background: var(--background-light);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .diagram-container h4 {
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .diagram-visual {
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            display: inline-block;
+            text-align: left;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            border: 1px solid var(--border-color);
+            overflow-x: auto;
+            max-width: 100%;
+        }
+
+        .diagram-caption {
+            margin-top: 20px;
+            font-style: italic;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        code {
+            background: var(--background-code);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', Consolas, monospace;
+            font-size: 0.9rem;
+            color: var(--primary-color);
+        }
+
+        pre {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 25px;
+            border-radius: 10px;
+            overflow-x: auto;
+            margin: 25px 0;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        .sql-keyword {
+            color: #63b3ed;
+        }
+
+        .sql-function {
+            color: #fbd38d;
+        }
+
+        .sql-string {
+            color: #68d391;
+        }
+
+        ul, ol {
+            margin: 20px 0 25px 30px;
+        }
+
+        li {
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+        }
+
+        li strong {
+            color: var(--text-primary);
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            font-size: 0.95rem;
+        }
+
+        .comparison-table th {
+            background: var(--primary-color);
+            color: white;
+            padding: 15px 20px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .comparison-table td {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background: var(--background-light);
+        }
+
+        .comparison-table tr:hover {
+            background: #edf2f7;
+        }
+
+        .highlight-text {
+            background: linear-gradient(180deg, transparent 60%, #fef3cd 60%);
+            padding: 0 3px;
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: var(--accent-color);
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+            margin-right: 12px;
+            font-size: 0.9rem;
+        }
+
+        .steps-list {
+            list-style: none;
+            margin-left: 0;
+            counter-reset: step-counter;
+        }
+
+        .steps-list li {
+            position: relative;
+            padding-left: 50px;
+            margin-bottom: 20px;
+        }
+
+        .steps-list li::before {
+            counter-increment: step-counter;
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 32px;
+            height: 32px;
+            background: var(--accent-color);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .summary-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 12px;
+        }
+
+        .summary-section h2 {
+            color: white;
+            border-bottom-color: var(--accent-color);
+        }
+
+        .summary-section ul {
+            margin-left: 25px;
+        }
+
+        .summary-section li {
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 15px;
+        }
+
+        .summary-section li::marker {
+            color: var(--accent-color);
+        }
+
+        .further-reading {
+            background: var(--background-light);
+            border: 2px dashed var(--border-color);
+        }
+
+        .further-reading h2 {
+            border-bottom-color: var(--secondary-color);
+        }
+
+        .analogy-box {
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            border: 2px solid #f59e0b;
+            padding: 25px 30px;
+            margin: 25px 0;
+            border-radius: 10px;
+        }
+
+        .analogy-box h4 {
+            color: #b45309;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .analogy-box h4::before {
+            content: "🎯 ";
+        }
+
+        .table-box {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 5px;
+            display: inline-block;
+            min-width: 150px;
+            text-align: left;
+        }
+
+        .table-box-header {
+            font-weight: bold;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+        .table-box-content {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            section {
+                padding: 25px;
+            }
+
+            .diagram-visual {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <span class="chapter-number">Chapter 9</span>
+            <h1>Multi-Valued Dimensions and Bridges</h1>
+            <p class="subtitle">A Complete Guide to Handling Complex Relationships in Dimensional Modeling</p>
+        </header>
+
+        <nav class="toc">
+            <h2>📚 Table of Contents</h2>
+            <ul>
+                <li><a href="#introduction">1. Introduction: When Simple Relationships Aren't Enough</a></li>
+                <li><a href="#one-to-many">2. Understanding Standard One-to-Many Relationships</a>
+                    <ul>
+                        <li><a href="#what-is-one-to-many">What Is a One-to-Many Relationship?</a></li>
+                        <li><a href="#why-it-matters">Why This Matters for Your Queries</a></li>
+                    </ul>
+                </li>
+                <li><a href="#multi-valued-dimensions">3. Multi-Valued Dimensions</a>
+                    <ul>
+                        <li><a href="#mvd-problem">The Problem Explained</a></li>
+                        <li><a href="#simplifying-relationship">Solution 1: Simplifying the Relationship</a></li>
+                        <li><a href="#dimension-bridge">Solution 2: The Dimension Bridge Table</a></li>
+                        <li><a href="#double-counting">Understanding Double-Counting</a></li>
+                        <li><a href="#allocation-factor">Adding an Allocation Factor</a></li>
+                        <li><a href="#primary-member">Supplementing with a Primary Member</a></li>
+                        <li><a href="#slow-changes-bridge">Handling Slow Changes with Bridges</a></li>
+                    </ul>
+                </li>
+                <li><a href="#multi-valued-attributes">4. Multi-Valued Attributes</a>
+                    <ul>
+                        <li><a href="#mva-problem">The Problem Explained</a></li>
+                        <li><a href="#simplifying-attribute">Solution 1: Simplifying the Attribute</a></li>
+                        <li><a href="#attribute-bridge">Solution 2: The Attribute Bridge Table</a></li>
+                        <li><a href="#mva-double-counting">Double-Counting with Attribute Bridges</a></li>
+                        <li><a href="#mva-changes">Impact of Changes</a></li>
+                    </ul>
+                </li>
+                <li><a href="#summary">5. Chapter Summary</a></li>
+                <li><a href="#further-reading">6. Further Reading</a></li>
+            </ul>
+        </nav>
+
+        <!-- INTRODUCTION -->
+        <section id="introduction">
+            <h2>1. Introduction: When Simple Relationships Aren't Enough</h2>
+            
+            <p class="intro-text">
+                Welcome to one of the most challenging—but also most powerful—topics in dimensional modeling. 
+                Until now, you may have learned that every star schema follows a simple pattern: each fact 
+                (like a sale or an order) relates to exactly one value in each dimension (like one product, 
+                one customer, one date). This creates the familiar "star" shape that gives star schemas their name.
+            </p>
+
+            <p>
+                <strong>But real life isn't always that simple.</strong> Sometimes, the data you need to model 
+                doesn't fit neatly into this one-to-one pattern. This chapter tackles two specific challenges:
+            </p>
+
+            <div class="definition-box">
+                <h4>Challenge 1: Multi-Valued Dimensions</h4>
+                <p>
+                    This occurs when a single fact (like an order) needs to be associated with <em>multiple</em> 
+                    values from a dimension table. For example, what if an order is handled by two salespeople 
+                    working together? The order doesn't belong to just one salesperson—it belongs to both.
+                </p>
+            </div>
+
+            <div class="definition-box">
+                <h4>Challenge 2: Multi-Valued Attributes</h4>
+                <p>
+                    This occurs when a single row in a dimension table needs to store <em>multiple</em> values 
+                    for the same attribute. For example, what if a customer company operates in multiple industries? 
+                    You can't just put "Manufacturing" in the industry column—the company is also in "Services."
+                </p>
+            </div>
+
+            <p>
+                The solution to both challenges involves a special type of table called a <strong>bridge table</strong>. 
+                Think of a bridge table like a real bridge connecting two places that couldn't otherwise be directly 
+                connected. It's incredibly powerful, but it also comes with risks that you must understand.
+            </p>
+
+            <div class="warning-box">
+                <h4>The Double-Edged Sword</h4>
+                <p>
+                    A bridge table provides ultimate flexibility—you can capture any number of relationships 
+                    and answer complex analytical questions. However, if used incorrectly, it can lead to 
+                    <strong>double-counting</strong>: counting the same fact multiple times, which gives 
+                    completely wrong results. Many organizations refuse to use bridge tables because of this risk. 
+                    This chapter will teach you both the power and the pitfalls so you can make informed decisions.
+                </p>
+            </div>
+        </section>
+
+        <!-- STANDARD ONE-TO-MANY RELATIONSHIPS -->
+        <section id="one-to-many">
+            <h2>2. Understanding Standard One-to-Many Relationships</h2>
+
+            <h3 id="what-is-one-to-many">What Is a One-to-Many Relationship?</h3>
+            
+            <p>
+                Before diving into the complex scenarios, let's make sure you fully understand how 
+                relationships normally work in a star schema. This foundation will help you understand 
+                why the challenges in this chapter are... well, challenging.
+            </p>
+
+            <div class="key-concept">
+                <h4>Key Concept: One-to-Many Relationship</h4>
+                <p>
+                    In a <strong>one-to-many relationship</strong>, one row in a parent table (like a dimension) 
+                    can be related to many rows in a child table (like a fact table), but each row in the child 
+                    table relates to exactly <strong>one</strong> row in the parent table.
+                </p>
+            </div>
+
+            <div class="analogy-box">
+                <h4>Real-World Analogy</h4>
+                <p>
+                    Think of a mother and her children. One mother can have many children (one-to-many), 
+                    but each child has exactly one biological mother. In database terms:
+                </p>
+                <ul>
+                    <li>The <strong>mother</strong> is like a dimension table row</li>
+                    <li>Each <strong>child</strong> is like a fact table row</li>
+                    <li>One mother → many children (but each child → exactly one mother)</li>
+                </ul>
+            </div>
+
+            <p>
+                In a star schema, this means:
+            </p>
+            <ul>
+                <li>A single <code>product</code> can appear in many <code>order_facts</code> rows</li>
+                <li>But each <code>order_facts</code> row refers to exactly one <code>product</code></li>
+                <li>This is true for every dimension: day, customer, salesperson, etc.</li>
+            </ul>
+
+            <div class="diagram-container">
+                <h4>Figure 9-1: Standard One-to-Many Relationships</h4>
+                <div class="diagram-visual">
+┌─────────────┐                         ┌─────────────┐
+│     DAY     │                         │   PRODUCT   │
+│─────────────│                         │─────────────│
+│ day_key     │────┐               ┌────│ product_key │
+│ date        │    │               │    │ product_name│
+│ month       │    │               │    │ brand_name  │
+└─────────────┘    │               │    └─────────────┘
+                   │               │
+                   ▼               ▼
+              ┌─────────────────────────┐
+              │      ORDER_FACTS        │
+              │─────────────────────────│
+              │ day_key (FK)            │
+              │ product_key (FK)        │
+              │ customer_key (FK)       │
+              │ salesrep_key (FK)       │
+              │ order_dollars           │
+              └─────────────────────────┘
+                   ▲               ▲
+                   │               │
+┌─────────────┐    │               │    ┌─────────────┐
+│  CUSTOMER   │────┘               └────│  SALESREP   │
+│─────────────│                         │─────────────│
+│ customer_key│                         │ salesrep_key│
+│ cust_name   │                         │ salesrep_nm │
+└─────────────┘                         └─────────────┘
+
+The arrows with a fork (▼) point toward the "many" side.
+Each dimension has a one-to-many relationship with the fact table.
+                </div>
+                <p class="diagram-caption">
+                    Each dimension table (DAY, PRODUCT, CUSTOMER, SALESREP) connects to the ORDER_FACTS 
+                    table through a foreign key. Each fact row refers to exactly one row in each dimension.
+                </p>
+            </div>
+
+            <h3 id="why-it-matters">Why This Matters for Your Queries</h3>
+
+            <p>
+                The one-to-many relationship is essential because it allows your SQL queries to work correctly. 
+                Consider this typical query that calculates total order dollars by brand:
+            </p>
+
+            <pre><code><span class="sql-keyword">SELECT</span> 
+    product.brand_name, 
+    <span class="sql-function">SUM</span>(order_facts.order_dollars) <span class="sql-keyword">AS</span> total_sales
+<span class="sql-keyword">FROM</span> 
+    product, order_facts 
+<span class="sql-keyword">WHERE</span> 
+    product.product_key = order_facts.product_key 
+<span class="sql-keyword">GROUP BY</span> 
+    product.brand_name</code></pre>
+
+            <p>
+                This query works perfectly because each order is associated with exactly one product, 
+                and therefore exactly one brand_name. The database can confidently group orders by brand 
+                without any confusion or overcounting.
+            </p>
+
+            <div class="tip-box">
+                <h4>Why This Is Important</h4>
+                <p>
+                    The entire query pattern you've learned—selecting dimensions and using them to aggregate 
+                    facts—relies on this one-to-many relationship. When we break this pattern (as we'll do 
+                    in this chapter), things get complicated quickly.
+                </p>
+            </div>
+
+            <p>
+                <strong>But what happens when reality breaks this pattern?</strong> What if an order 
+                is handled by two salespeople working as a team? The diagram below shows this problem:
+            </p>
+
+            <div class="diagram-container">
+                <h4>Figure 9-2: The Problem — When More Than One Salesperson Is Involved</h4>
+                <div class="diagram-visual">
+┌─────────────┐                         ┌─────────────┐
+│     DAY     │                         │   PRODUCT   │
+└──────┬──────┘                         └──────┬──────┘
+       │                                       │
+       ▼                                       ▼
+              ┌─────────────────────────┐
+              │      ORDER_FACTS        │
+              │─────────────────────────│
+              │ day_key                 │
+              │ product_key             │
+              │ customer_key            │
+              │ ??? salesrep_key ???    │◄───── HOW DO WE HANDLE THIS?
+              │ order_dollars           │
+              └─────────────────────────┘
+                   ▲                    
+                   │                    
+┌─────────────┐    │                          ┌─────────────┐
+│  CUSTOMER   │────┘                          │  SALESREP   │
+└─────────────┘                               │─────────────│
+                                              │ Ann Davis   │  ← Both worked
+                                              │ Henry Perez │  ← on the order!
+                                              └─────────────┘
+
+╔═══════════════════════════════════════════════════════════════╗
+║  PROBLEM: Some orders have more than one salesperson!         ║
+║  We can't just put one salesrep_key in the fact table.        ║
+╚═══════════════════════════════════════════════════════════════╝
+                </div>
+                <p class="diagram-caption">
+                    When multiple salespeople collaborate on an order, the simple star schema breaks down. 
+                    The fact table can't hold multiple foreign keys to the salesrep table.
+                </p>
+            </div>
+        </section>
+
+        <!-- MULTI-VALUED DIMENSIONS -->
+        <section id="multi-valued-dimensions">
+            <h2>3. Multi-Valued Dimensions</h2>
+
+            <h3 id="mvd-problem">The Problem Explained</h3>
+
+            <p>
+                A <strong>multi-valued dimension</strong> occurs when a fact table row may need to refer 
+                to more than one row in a dimension table. In our example, a single order might be 
+                credited to two, three, or even more salespeople who worked together.
+            </p>
+
+            <div class="definition-box">
+                <h4>Definition: Multi-Valued Dimension</h4>
+                <p>
+                    A multi-valued dimension is a dimension that can take on multiple values with respect 
+                    to a single fact. Instead of a one-to-many relationship, you have a 
+                    <strong>many-to-many</strong> relationship: one fact can relate to many dimension rows, 
+                    and one dimension row can relate to many facts.
+                </p>
+            </div>
+
+            <p>
+                There are two main approaches to solving this problem:
+            </p>
+            <ol>
+                <li><strong>Simplify the relationship</strong> by creating multiple columns in the fact table</li>
+                <li><strong>Use a bridge table</strong> to connect facts to any number of dimension rows</li>
+            </ol>
+
+            <p>Let's explore both solutions in detail.</p>
+
+            <h3 id="simplifying-relationship">Solution 1: Simplifying the Relationship</h3>
+
+            <p>
+                The simplest approach is to "flatten" the many-to-many relationship by creating 
+                multiple one-to-many relationships. Instead of having one <code>salesrep_key</code> 
+                column in the fact table, you create two (or more): <code>primary_salesrep_key</code> 
+                and <code>secondary_salesrep_key</code>.
+            </p>
+
+            <div class="diagram-container">
+                <h4>Figure 9-3: Simplifying with Primary and Secondary Salespeople</h4>
+                <div class="diagram-visual">
+              ┌─────────────────────────────────────────┐
+              │            ORDER_FACTS                  │
+              │─────────────────────────────────────────│
+              │ day_key                                 │
+              │ product_key                             │
+              │ customer_key                            │
+              │ primary_salesrep_key ──────┐            │
+              │ secondary_salesrep_key ────┼────┐       │
+              │ order_dollars              │    │       │
+              └────────────────────────────┼────┼───────┘
+                                           │    │
+                                           ▼    ▼
+                              ┌────────────────────────────┐
+                              │         SALESREP           │
+                              │────────────────────────────│
+                              │ salesrep_key               │
+                              │ salesperson_name           │
+                              │ region                     │
+                              └────────────────────────────┘
+
+When only one salesperson is involved, the secondary_salesrep_key 
+refers to a special "Not Applicable" row in the salesrep table.
+                </div>
+                <p class="diagram-caption">
+                    The fact table now has two foreign keys pointing to the salesrep table. 
+                    Each plays a different "role" (primary vs. secondary).
+                </p>
+            </div>
+
+            <h4>Advantages of This Approach:</h4>
+            <ul>
+                <li>Simple to understand and implement</li>
+                <li>Uses familiar star schema patterns</li>
+                <li>No risk of double-counting when querying the primary salesperson</li>
+            </ul>
+
+            <h4>Disadvantages of This Approach:</h4>
+            <ul>
+                <li><strong>Limited to a fixed number:</strong> What if three salespeople collaborate? You'd need to add a third column. Four? A fourth column. This quickly becomes unmanageable.</li>
+                <li><strong>Reporting is difficult:</strong> If you want to see all orders that Ann worked on (regardless of whether she was primary or secondary), you need complex queries that check both columns.</li>
+                <li><strong>Grouping is messy:</strong> Counting total sales per salesperson requires summing separate queries for primary and secondary roles.</li>
+            </ul>
+
+            <div class="warning-box">
+                <h4>Reporting Challenge Example</h4>
+                <p>
+                    To count all sales for salesperson Ann Davis (whether primary or secondary), 
+                    you'd need a query like this—notice how complicated it becomes:
+                </p>
+                <pre><code><span class="sql-keyword">SELECT SUM</span>(order_dollars)
+<span class="sql-keyword">FROM</span> order_facts
+<span class="sql-keyword">WHERE</span> 
+    primary_salesrep_key = (Ann's key)
+    <span class="sql-keyword">OR</span> secondary_salesrep_key = (Ann's key)</code></pre>
+                <p>
+                    And if there were three roles, you'd need to check three columns. 
+                    This gets tedious and error-prone quickly.
+                </p>
+            </div>
+
+            <h3 id="dimension-bridge">Solution 2: The Dimension Bridge Table</h3>
+
+            <p>
+                A more flexible solution uses a <strong>bridge table</strong> to connect facts to 
+                any number of dimension rows. The bridge table sits "between" the fact table and 
+                the dimension table, acting as an intermediary.
+            </p>
+
+            <div class="key-concept">
+                <h4>Key Concept: The Bridge Table</h4>
+                <p>
+                    A bridge table creates <strong>groups</strong> of dimension members. Instead of the 
+                    fact table pointing directly to salespeople, it points to a "group" of salespeople. 
+                    That group can have one member, two members, or any number.
+                </p>
+            </div>
+
+            <p>Here's how it works:</p>
+
+            <ol class="steps-list">
+                <li>Create a <code>sales_group</code> bridge table with two columns: <code>sales_group_key</code> and <code>salesrep_key</code></li>
+                <li>When Ann and Henry collaborate on an order, create a group (say, group #1) with two rows in the bridge table—one for Ann, one for Henry</li>
+                <li>The order in the fact table references this group (group #1), not individual salespeople</li>
+                <li>To find salespeople for an order, join the fact table → bridge table → salesrep table</li>
+            </ol>
+
+            <div class="diagram-container">
+                <h4>Figure 9-4: The Bridge Table Solution</h4>
+                <div class="diagram-visual">
+┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│     DAY     │  │   PRODUCT   │  │  CUSTOMER   │
+└──────┬──────┘  └──────┬──────┘  └──────┬──────┘
+       │                │                │
+       ▼                ▼                ▼
+       ├────────────────┼────────────────┤
+       │                                 │
+       │     ┌─────────────────────┐     │
+       └────►│    ORDER_FACTS      │◄────┘
+             │─────────────────────│
+             │ day_key             │
+             │ product_key         │
+             │ customer_key        │
+             │ sales_group_key ────┼──────┐
+             │ order_dollars       │      │
+             └─────────────────────┘      │
+                                          │
+                                          ▼
+                              ┌───────────────────┐
+                              │   SALES_GROUP     │  ◄── Bridge Table
+                              │───────────────────│
+                              │ sales_group_key   │
+                              │ salesrep_key      │
+                              └─────────┬─────────┘
+                                        │
+                                        ▼
+                              ┌───────────────────┐
+                              │     SALESREP      │
+                              │───────────────────│
+                              │ salesrep_key      │
+                              │ salesperson_name  │
+                              │ region            │
+                              └───────────────────┘
+
+
+═══════════════════════════════════════════════════════════════
+                    EXAMPLE DATA:
+
+ORDER_FACTS                    SALES_GROUP             SALESREP
+───────────────────────        ─────────────────       ──────────────────────
+day_key | ... | group_key      group_key | rep_key    rep_key | name
+───────────────────────        ─────────────────       ──────────────────────
+  2012  | ... |     1             1      |    222        222   | Ann Davis
+                                  1      |    333        333   | Henry Perez
+───────────────────────        ─────────────────       ──────────────────────
+
+Group #1 contains both Ann (222) and Henry (333).
+The order references Group #1, linking it to both salespeople.
+═══════════════════════════════════════════════════════════════
+                </div>
+                <p class="diagram-caption">
+                    The bridge table (SALES_GROUP) connects the fact table to any number of salespeople 
+                    by creating groups. The example shows Ann and Henry sharing credit for a $1,000 order.
+                </p>
+            </div>
+
+            <h4>Advantages of the Bridge Table:</h4>
+            <ul>
+                <li><strong>Unlimited flexibility:</strong> Groups can have any number of members</li>
+                <li><strong>Easy reporting:</strong> To find all sales involving Ann, simply join through the bridge table—no need to check multiple columns</li>
+                <li><strong>Clean queries:</strong> The same query pattern works regardless of group size</li>
+            </ul>
+
+            <div class="tip-box">
+                <h4>ETL Implications</h4>
+                <p>
+                    The ETL (Extract, Transform, Load) process must manage these groups. When loading a 
+                    new order, the process must either find an existing group with the same members or 
+                    create a new group. If Ann and Henry collaborate again, the same group can be reused.
+                </p>
+            </div>
+
+            <h3 id="double-counting">Understanding Double-Counting</h3>
+
+            <p>
+                Here's the <strong>dangerous downside</strong> of bridge tables: they make it very easy 
+                to count the same fact multiple times, giving you completely wrong results.
+            </p>
+
+            <div class="danger-box">
+                <h4>Critical Warning: Double-Counting</h4>
+                <p>
+                    When you join the fact table through a bridge to a dimension, each fact can appear 
+                    multiple times in your result—once for each member of the group. If you're not 
+                    careful, you'll count the same order twice, three times, or more!
+                </p>
+            </div>
+
+            <p>
+                Let's see this in action. Ann and Henry's $1,000 order is linked to a group containing both of them. 
+                If you query orders by region:
+            </p>
+
+            <pre><code><span class="sql-keyword">SELECT</span> 
+    salesrep.region, 
+    <span class="sql-function">SUM</span>(order_facts.order_dollars) <span class="sql-keyword">AS</span> total
+<span class="sql-keyword">FROM</span> 
+    salesrep, sales_group, order_facts 
+<span class="sql-keyword">WHERE</span> 
+    order_facts.sales_group_key = sales_group.sales_group_key 
+    <span class="sql-keyword">AND</span> sales_group.salesrep_key = salesrep.salesrep_key 
+<span class="sql-keyword">GROUP BY</span> 
+    salesrep.region</code></pre>
+
+            <p>
+                <strong>The problem:</strong> Both Ann and Henry are in the "East" region. The database 
+                will match the $1,000 order to Ann (region = East), and then match it again to Henry 
+                (also region = East). Result: the East region shows $2,000 instead of $1,000!
+            </p>
+
+            <h4>When Double-Counting Is Actually Wanted</h4>
+
+            <p>
+                Sometimes, this behavior is exactly what you want! Consider an <strong>impact report</strong>: 
+                "Show me the total order volume associated with each salesperson." In this case, you 
+                <em>want</em> the $1,000 order to count for both Ann and Henry—each of them genuinely 
+                participated in $1,000 worth of business.
+            </p>
+
+            <div class="warning-box">
+                <h4>The Grand Total Trap</h4>
+                <p>
+                    Even when double-counting is appropriate for individual rows, <strong>never create a 
+                    grand total</strong> from such a report! Ann's $1,000 + Henry's $1,000 does NOT mean 
+                    the company made $2,000. It's the same order counted twice.
+                </p>
+            </div>
+
+            <div class="tip-box">
+                <h4>Safe Grouping Rule</h4>
+                <p>
+                    The only safe way to construct an impact report is to group by a column that has a 
+                    unique value for each group member—typically the natural key (like <code>salesrep_id</code>) 
+                    or the surrogate key. Grouping by any other attribute (like <code>region</code>) risks 
+                    double-counting when multiple group members share that attribute value.
+                </p>
+            </div>
+
+            <h3 id="allocation-factor">Adding an Allocation Factor</h3>
+
+            <p>
+                One way to prevent double-counting is to add an <strong>allocation factor</strong> to the 
+                bridge table. This tells the database what percentage of each fact should be credited to 
+                each group member.
+            </p>
+
+            <div class="diagram-container">
+                <h4>Figure 9-5: Bridge Table with Allocation Factor</h4>
+                <div class="diagram-visual">
+SALES_GROUP (with allocation)       SALESREP
+───────────────────────────────     ──────────────────────────
+group_key | rep_key | allocation    rep_key | name        | region
+───────────────────────────────     ──────────────────────────
+    1     |   222   |    0.75          222   | Ann Davis   | East
+    1     |   333   |    0.25          333   | Henry Perez | East
+───────────────────────────────     ──────────────────────────
+
+Ann gets 75% credit, Henry gets 25% credit.
+
+Query:
+SELECT salesperson_name, SUM(order_dollars * allocation)
+FROM salesrep, sales_group, order_facts
+WHERE [join conditions]
+GROUP BY salesperson_name
+
+Result:
+─────────────────────────────────
+salesperson_name | allocated_dollars
+─────────────────────────────────
+Ann Davis        |      750
+Henry Perez      |      250
+─────────────────────────────────
+
+Total: 750 + 250 = $1,000 ✓ (No double-counting!)
+                </div>
+                <p class="diagram-caption">
+                    By multiplying each fact by its allocation factor before summing, you prevent 
+                    double-counting. The allocated amounts correctly total to the original order value.
+                </p>
+            </div>
+
+            <p>
+                <strong>The catch:</strong> Allocation factors must come from the business, not from 
+                the technical team. You need a legitimate business rule that defines how credit is 
+                split. If no such rule exists (which is common), you can't use this approach.
+            </p>
+
+            <div class="warning-box">
+                <h4>Non-Allocatable Facts</h4>
+                <p>
+                    Some facts simply cannot be meaningfully allocated. If Ann and Henry sold 
+                    <strong>one refrigerator</strong>, you can't say Ann sold 0.75 refrigerators! 
+                    This may be acceptable for reporting purposes, but it can confuse users.
+                </p>
+            </div>
+
+            <h3 id="primary-member">Supplementing with a Primary Member</h3>
+
+            <p>
+                A common best practice is to combine the bridge table with a simplified solution: 
+                add a direct <code>primary_salesrep_key</code> column to the fact table that points 
+                to one "main" salesperson. This gives you the best of both worlds:
+            </p>
+
+            <ul>
+                <li><strong>For most users:</strong> Use the direct primary_salesrep_key for simple, safe reporting</li>
+                <li><strong>For advanced analysts:</strong> Use the bridge table for complex impact reports</li>
+            </ul>
+
+            <div class="diagram-container">
+                <h4>Figure 9-6: Bridge Supplemented with Primary Member</h4>
+                <div class="diagram-visual">
+              ┌─────────────────────────┐
+              │      ORDER_FACTS        │
+              │─────────────────────────│
+              │ day_key                 │
+              │ product_key             │
+              │ customer_key            │
+              │ sales_group_key ────────┼─────► SALES_GROUP (bridge)
+              │ primary_salesrep_key ───┼─────► SALESREP (direct, safe)
+              │ order_dollars           │
+              └─────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                         TWO PATHS TO SALESREP                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  PATH 1: Direct (Safe)                                              │
+│  ─────────────────────                                              │
+│  ORDER_FACTS.primary_salesrep_key → SALESREP                        │
+│  • Always returns exactly one salesperson per order                 │
+│  • NO risk of double-counting                                       │
+│  • Give this to regular report users                                │
+│                                                                     │
+│  PATH 2: Through Bridge (Powerful but Risky)                        │
+│  ───────────────────────────────────────────                        │
+│  ORDER_FACTS → SALES_GROUP → SALESREP                               │
+│  • Returns ALL salespeople involved in each order                   │
+│  • RISK of double-counting                                          │
+│  • Only for trained analysts who understand the risks               │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+                </div>
+                <p class="diagram-caption">
+                    By providing two paths to the salesrep dimension, you can hide the risky bridge 
+                    from casual users while still enabling sophisticated analysis when needed.
+                </p>
+            </div>
+
+            <div class="tip-box">
+                <h4>Best Practice</h4>
+                <p>
+                    When implementing a bridge between a fact table and a dimension, always consider 
+                    supplementing it with a direct relationship that isolates a primary role. Hide the 
+                    bridge from most users, and only expose it to analysts who understand the risks.
+                </p>
+            </div>
+
+            <h3 id="slow-changes-bridge">Handling Slow Changes with Bridges</h3>
+
+            <p>
+                If you've learned about Slowly Changing Dimensions (SCDs), you know that dimension 
+                data can change over time. Bridge tables add complexity to slow change processing:
+            </p>
+
+            <h4>Type 1 Changes (Overwrite)</h4>
+            <p>
+                If a bridged dimension row undergoes a Type 1 change (simply updating the value), 
+                no special action is needed for the bridge. The salesperson remains associated with 
+                existing groups.
+            </p>
+
+            <h4>Type 2 Changes (Add New Row)</h4>
+            <p>
+                If a dimension row undergoes a Type 2 change (creating a new version with a new 
+                surrogate key), the next collaboration involving that person will require a new group. 
+                The old group references the old version; the new group will reference the new version.
+            </p>
+
+            <h4>Changes to Group Membership</h4>
+            <p>
+                If group membership itself is tracked as a meaningful entity (e.g., "Eastern Special 
+                Project Team"), changes to membership can also be handled as Type 1 or Type 2:
+            </p>
+            <ul>
+                <li><strong>Type 1:</strong> Update the bridge table rows (delete/add members)</li>
+                <li><strong>Type 2:</strong> Create a new group with new members, preserving the old group for historical facts</li>
+            </ul>
+
+            <h4>Resolving Many-to-Many for Software Tools</h4>
+
+            <p>
+                Some database modeling tools, BI software, or even the RDBMS itself may not accept 
+                many-to-many relationships. If your tools require each foreign key to reference a 
+                primary key, you can resolve this by creating an "intersect table":
+            </p>
+
+            <div class="diagram-container">
+                <h4>Figure 9-7: Resolving the Many-to-Many Relationship</h4>
+                <div class="diagram-visual">
+              ┌─────────────────────────┐
+              │      ORDER_FACTS        │
+              │─────────────────────────│
+              │ sales_group_key ────────┼──────┐
+              │ order_dollars           │      │
+              └─────────────────────────┘      │
+                                               ▼
+                                   ┌───────────────────┐
+                                   │    SALES_GROUP    │
+                                   │───────────────────│
+                                   │ sales_group_key   │ ◄── Only ONE column!
+                                   └─────────┬─────────┘     (Just the key)
+                                             │
+                                             ▼
+                                   ┌───────────────────┐
+                                   │ GROUP_MEMBERSHIP  │ ◄── Intersect table
+                                   │───────────────────│
+                                   │ sales_group_key   │
+                                   │ salesrep_key      │
+                                   └─────────┬─────────┘
+                                             │
+                                             ▼
+                                   ┌───────────────────┐
+                                   │     SALESREP      │
+                                   └───────────────────┘
+
+The SALES_GROUP table looks silly (just one column!) but it satisfies 
+tools that require every foreign key to point to a primary key.
+                </div>
+                <p class="diagram-caption">
+                    By adding a single-column table (SALES_GROUP), you create proper primary 
+                    key-foreign key relationships that satisfy strict database tools.
+                </p>
+            </div>
+        </section>
+
+        <!-- MULTI-VALUED ATTRIBUTES -->
+        <section id="multi-valued-attributes">
+            <h2>4. Multi-Valued Attributes</h2>
+
+            <h3 id="mva-problem">The Problem Explained</h3>
+
+            <p>
+                Multi-valued attributes are different from multi-valued dimensions. This time, the 
+                problem isn't about facts relating to multiple dimension rows—it's about a single 
+                dimension row needing to store multiple values for one attribute.
+            </p>
+
+            <div class="definition-box">
+                <h4>Definition: Multi-Valued Attribute</h4>
+                <p>
+                    A multi-valued attribute is a dimension attribute that can take on more than one 
+                    value for a single dimension member. For example, a customer company might operate 
+                    in multiple industries: "Manufacturing" <em>and</em> "Services."
+                </p>
+            </div>
+
+            <div class="diagram-container">
+                <h4>Figure 9-8: The Multi-Valued Attribute Problem</h4>
+                <div class="diagram-visual">
+                              ┌───────────────────┐
+                              │     CUSTOMER      │
+                              │───────────────────│
+                              │ customer_key      │
+                              │ customer_id       │
+                              │ customer_name     │
+                              │ industry ??????   │◄── Problem: What goes here?
+                              └───────────────────┘
+
+CUSTOMER DATA:
+───────────────────────────────────────────────────────────
+Customer    | Industry
+───────────────────────────────────────────────────────────
+Company A   | Manufacturing
+Company B   | Services
+Company C   | Manufacturing, Services  ◄── TWO industries!
+Company D   | Finance
+───────────────────────────────────────────────────────────
+
+How do we store Company C's industries?
+We can't put "Manufacturing, Services" in one column—
+we couldn't easily search or group by industry!
+                </div>
+                <p class="diagram-caption">
+                    Some customers operate in multiple industries. A single "industry" column 
+                    cannot properly represent this complexity.
+                </p>
+            </div>
+
+            <p>
+                Just like with multi-valued dimensions, we have two main solutions:
+            </p>
+            <ol>
+                <li><strong>Flatten the attribute</strong> into multiple columns</li>
+                <li><strong>Use an attribute bridge</strong> connecting to an outrigger table</li>
+            </ol>
+
+            <h3 id="simplifying-attribute">Solution 1: Simplifying the Attribute</h3>
+
+            <p>
+                The simplest approach is to create multiple columns for the same attribute:
+            </p>
+
+            <div class="diagram-container">
+                <h4>Figure 9-9: Flattening Multi-Valued Attributes</h4>
+                <div class="diagram-visual">
+              ┌───────────────────────────┐
+              │         CUSTOMER          │
+              │───────────────────────────│
+              │ customer_key              │
+              │ customer_id               │
+              │ customer_name             │
+              │ industry_1 ───────────────│◄── First industry
+              │ industry_2 ───────────────│◄── Second industry
+              │ industry_3 ───────────────│◄── Third industry (if needed)
+              └───────────────────────────┘
+
+Company C would have:
+  industry_1 = "Manufacturing"
+  industry_2 = "Services"
+  industry_3 = NULL or "N/A"
+                </div>
+            </div>
+
+            <h4>Problems with Flattening:</h4>
+            <ul>
+                <li><strong>Limited to a fixed number:</strong> What if a company is in 5 industries? You'd need 5 columns.</li>
+                <li><strong>Filtering is complex:</strong> To find all companies in "Services," you must check <em>all three columns</em>.</li>
+                <li><strong>Grouping is very difficult:</strong> You can't easily produce a report showing total sales by industry when the industry might be in any of three columns.</li>
+            </ul>
+
+            <div class="tip-box">
+                <h4>When Flattening Works Well</h4>
+                <p>
+                    Flattening is appropriate when:
+                </p>
+                <ul>
+                    <li>A small, fixed number of values is acceptable</li>
+                    <li>Each value has a distinct role (e.g., "home phone," "work phone," "mobile phone")</li>
+                    <li>You won't need to filter or group by these values</li>
+                </ul>
+            </div>
+
+            <h3 id="attribute-bridge">Solution 2: The Attribute Bridge Table</h3>
+
+            <p>
+                An <strong>attribute bridge</strong> works similarly to a dimension bridge, but instead 
+                of connecting a fact table to a dimension, it connects a dimension table to an 
+                <strong>outrigger</strong> (a secondary table containing attribute values).
+            </p>
+
+            <div class="key-concept">
+                <h4>Key Concept: Attribute Bridge</h4>
+                <p>
+                    An attribute bridge connects a dimension table to an outrigger table that holds 
+                    the multi-valued attributes. The dimension row contains a "group key" that links 
+                    to one or more rows in the bridge, which in turn links to the outrigger.
+                </p>
+            </div>
+
+            <div class="diagram-container">
+                <h4>Figure 9-10: The Attribute Bridge Solution</h4>
+                <div class="diagram-visual">
+┌─────────────────────┐
+│    ORDER_FACTS      │
+│─────────────────────│
+│ day_key             │
+│ customer_key ───────┼──────┐
+│ product_key         │      │
+│ order_dollars       │      │
+└─────────────────────┘      │
+                             ▼
+                 ┌───────────────────────┐
+                 │       CUSTOMER        │
+                 │───────────────────────│
+                 │ customer_key          │
+                 │ customer_id           │
+                 │ customer_name         │
+                 │ industry_group_key ───┼──────┐
+                 └───────────────────────┘      │
+                                                │
+                                                ▼
+                              ┌─────────────────────────────┐
+                              │       INDUSTRY_GROUP        │  ◄── Bridge
+                              │─────────────────────────────│
+                              │ industry_group_key          │
+                              │ industry_key                │
+                              │ primary_industry (flag)     │
+                              └──────────────┬──────────────┘
+                                             │
+                                             ▼
+                              ┌─────────────────────────────┐
+                              │          INDUSTRY           │  ◄── Outrigger
+                              │─────────────────────────────│
+                              │ industry_key                │
+                              │ industry_code               │
+                              │ industry_name               │
+                              └─────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════
+                           EXAMPLE DATA:
+
+CUSTOMER                              INDUSTRY_GROUP             INDUSTRY
+─────────────────────────────────     ────────────────────────   ────────────────
+key  | id   | name      | grp_key    grp_key|ind_key|primary    key |code |name
+─────────────────────────────────     ────────────────────────   ────────────────
+2012 | C771 | Company C | 100           100 | 901   | Yes        901| B404| Manufacturing
+                                        100 | 902   | No         902| B492| Services
+─────────────────────────────────     ────────────────────────   ────────────────
+
+Company C is in industry group 100.
+Group 100 links to industries 901 (Manufacturing) and 902 (Services).
+Manufacturing is flagged as the "primary" industry.
+═══════════════════════════════════════════════════════════════════════════
+                </div>
+                <p class="diagram-caption">
+                    The attribute bridge (INDUSTRY_GROUP) connects the CUSTOMER dimension to the 
+                    INDUSTRY outrigger, allowing each customer to be associated with multiple industries.
+                </p>
+            </div>
+
+            <h4>Advantages of the Attribute Bridge:</h4>
+            <ul>
+                <li><strong>Unlimited values:</strong> A customer can be in any number of industries</li>
+                <li><strong>Easy filtering:</strong> Join customer → bridge → industry, then filter on industry_name</li>
+                <li><strong>Flexible reporting:</strong> Group facts by industry easily</li>
+            </ul>
+
+            <h3 id="mva-double-counting">Double-Counting with Attribute Bridges</h3>
+
+            <p>
+                Just like dimension bridges, attribute bridges introduce the risk of double-counting. 
+                When you join a fact table → dimension → bridge → outrigger, each fact can appear 
+                multiple times.
+            </p>
+
+            <p>Consider this query involving Company C (which is in two industries):</p>
+
+            <pre><code><span class="sql-keyword">SELECT</span> 
+    customer.customer_name, 
+    industry.industry_name
+<span class="sql-keyword">FROM</span> 
+    customer, industry_group, industry 
+<span class="sql-keyword">WHERE</span> 
+    customer.industry_group_key = industry_group.industry_group_key 
+    <span class="sql-keyword">AND</span> industry_group.industry_key = industry.industry_key</code></pre>
+
+            <p>The result contains <strong>two rows</strong> for Company C:</p>
+
+            <pre><code>CUSTOMER_NAME  | INDUSTRY_NAME
+───────────────┼───────────────
+Company C      | Manufacturing
+Company C      | Services</code></pre>
+
+            <p>
+                Now imagine adding facts to this query. If Company C has a $10,000 order, it will appear 
+                twice—once for each industry. If you're building an industry impact report, this might be 
+                intentional. But if you're not careful, you'll end up with inflated totals.
+            </p>
+
+            <h4>Using a Primary Flag</h4>
+
+            <p>
+                Notice in Figure 9-10 that the bridge table has a <code>primary_industry</code> column. 
+                This flag identifies one industry as "primary" for each customer. You can use this flag 
+                to filter results for casual users, showing only the primary industry:
+            </p>
+
+            <pre><code><span class="sql-keyword">SELECT</span> 
+    customer.customer_name, 
+    industry.industry_name
+<span class="sql-keyword">FROM</span> 
+    customer, industry_group, industry 
+<span class="sql-keyword">WHERE</span> 
+    customer.industry_group_key = industry_group.industry_group_key 
+    <span class="sql-keyword">AND</span> industry_group.industry_key = industry.industry_key
+    <span class="sql-keyword">AND</span> industry_group.primary_industry = <span class="sql-string">'Yes'</span></code></pre>
+
+            <p>This returns only one row per customer, eliminating the double-counting risk.</p>
+
+            <h3 id="mva-changes">Impact of Changes</h3>
+
+            <p>
+                Attribute bridges require careful handling of changes. Here are the key scenarios:
+            </p>
+
+            <h4>Changes to the Outrigger (e.g., Industry Name)</h4>
+            <ul>
+                <li><strong>Type 1:</strong> Simply update the outrigger. All customers linked to that industry see the change.</li>
+                <li><strong>Type 2:</strong> Creates a ripple effect! A new industry row gets a new key. Every customer referencing the old industry needs a new version with a new group pointing to the new industry.</li>
+            </ul>
+
+            <h4>Changes to Group Membership (e.g., Customer Leaves an Industry)</h4>
+            <ul>
+                <li><strong>Type 1:</strong> Update the customer's industry_group_key to point to a different group (or update the existing group's rows).</li>
+                <li><strong>Type 2:</strong> Create a new customer row with a new group. The old customer row (with old industries) remains linked to historical facts.</li>
+            </ul>
+
+            <h4>Changes to the Dimension (e.g., Customer Name)</h4>
+            <ul>
+                <li>If industries haven't changed, the new customer row can reuse the same industry_group_key.</li>
+                <li>No need to modify the bridge or outrigger.</li>
+            </ul>
+
+            <div class="tip-box">
+                <h4>Important Note</h4>
+                <p>
+                    The multi-valued attribute (industry) is conceptually part of the dimension (customer), 
+                    even though it's physically stored in a bridge and outrigger. When group membership changes, 
+                    it's like the dimension itself changed—and should be treated accordingly for SCD purposes.
+                </p>
+            </div>
+        </section>
+
+        <!-- SUMMARY -->
+        <section id="summary" class="summary-section">
+            <h2>5. Chapter Summary</h2>
+
+            <p>
+                This chapter has equipped you with tools to handle real-world complexity that doesn't 
+                fit the traditional one-to-many relationship between dimensions and facts. Here are 
+                the key takeaways:
+            </p>
+
+            <h3>Multi-Valued Dimensions</h3>
+            <ul>
+                <li>When a fact must relate to multiple dimension rows, you can <strong>simplify</strong> by using multiple foreign key columns—but this limits you to a fixed number and makes reporting difficult.</li>
+                <li>A <strong>bridge table</strong> allows a fact to associate with any number of dimension rows while keeping queries simple.</li>
+                <li>Bridge tables create a significant risk of <strong>double-counting</strong>—access must be carefully controlled.</li>
+                <li>Consider adding an <strong>allocation factor</strong> to the bridge, or supplementing with a <strong>primary member</strong> relationship for safe basic reporting.</li>
+            </ul>
+
+            <h3>Multi-Valued Attributes</h3>
+            <ul>
+                <li>When a dimension attribute needs multiple values, you can <strong>flatten</strong> into multiple columns—but this limits flexibility and complicates filtering/grouping.</li>
+                <li>An <strong>attribute bridge</strong> connects the dimension to an outrigger, allowing unlimited attribute values.</li>
+                <li>The same double-counting risks apply—use a <strong>primary flag</strong> to help protect casual users.</li>
+            </ul>
+
+            <h3>Handling Changes</h3>
+            <ul>
+                <li>Type 1 changes to bridged data are straightforward—just update in place.</li>
+                <li>Type 2 changes create ripple effects: new surrogate keys in one table may require new groups and new dimension rows.</li>
+                <li>The many-to-many relationship can be resolved with an <strong>intersect table</strong> if your software requires it.</li>
+            </ul>
+
+            <h3>Bridge Tables as Fact Tables</h3>
+            <ul>
+                <li>Some BI tools identify bridge tables as fact tables because they contain multiple foreign keys.</li>
+                <li>This is acceptable, but ensure the tool doesn't try to "drill across" between the bridge and other fact tables.</li>
+            </ul>
+        </section>
+
+        <!-- FURTHER READING -->
+        <section id="further-reading" class="further-reading">
+            <h2>6. Further Reading</h2>
+
+            <p>
+                Bridge tables are complex but powerful. For additional examples and deeper exploration, 
+                consider these resources:
+            </p>
+
+            <h3>Multi-Valued Dimensions</h3>
+            <ul>
+                <li><strong>Health Care Example:</strong> Kimball and Ross describe using a bridge table to associate a billing fact table with multiple diagnoses in <em>The Data Warehouse Toolkit, Second Edition</em> (Wiley, 2002), Chapter 13.</li>
+                <li><strong>Aggregates with Bridges:</strong> Building aggregates to summarize within a bridged dimension can be risky. See <em>Mastering Data Warehouse Aggregates</em> (Wiley, 2006), Chapter 8.</li>
+            </ul>
+
+            <h3>Multi-Valued Dimension Attributes</h3>
+            <ul>
+                <li><strong>Employee Skills:</strong> Kimball and Ross use a bridge to associate multiple skills with each employee in <em>The Data Warehouse Toolkit</em>, Chapter 8.</li>
+                <li><strong>Account Holders:</strong> Kimball and Ross show how an attribute bridge can associate multiple account holders with an account dimension in Chapter 9 of the same book.</li>
+                <li><strong>Concatenated Values:</strong> An alternative approach (not covered in this manual) concatenates multiple values into a single text attribute. This works with SQL substring functions but cannot be used for impact reports.</li>
+            </ul>
+
+            <div class="tip-box">
+                <h4>What's Next?</h4>
+                <p>
+                    The next chapter explores <strong>Recursive Hierarchies and Bridges</strong>—another 
+                    powerful application of bridge tables. You'll learn how to model hierarchies where 
+                    entities relate to other entities of the same type (like departments reporting to 
+                    other departments).
+                </p>
+            </div>
+        </section>
+
+        <footer>
+            <p>
+                <strong>User Manual for Chapter 9: Multi-Valued Dimensions and Bridges</strong><br>
+                Based on <em>Star Schema: The Complete Reference</em> by Christopher Adamson<br>
+                McGraw-Hill Osborne Media, 2010
+            </p>
+        </footer>
+    </div>
+</body>
+</html>
