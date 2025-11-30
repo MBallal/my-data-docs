@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 11: Transactions, Snapshots, and Accumulating Snapshots | Star Schema Manual</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+Pro:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-navy: #1a2744;
+            --primary-blue: #2563eb;
+            --accent-orange: #f59e0b;
+            --accent-emerald: #10b981;
+            --accent-rose: #f43f5e;
+            --bg-cream: #faf8f5;
+            --bg-white: #ffffff;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --border-light: #e2e8f0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 40px rgba(0,0,0,0.12);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-cream);
+            color: var(--text-dark);
+            line-height: 1.75;
+            font-size: 17px;
+        }
+
+        /* Header Styles */
+        header {
+            background: linear-gradient(135deg, var(--primary-navy) 0%, #2d3a5c 50%, #1e3a5f 100%);
+            color: white;
+            padding: 3rem 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        .header-content {
+            max-width: 1100px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .chapter-label {
+            display: inline-block;
+            background: var(--accent-orange);
+            color: var(--primary-navy);
+            padding: 0.35rem 1rem;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        header h1 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            font-weight: 300;
+            max-width: 700px;
+        }
+
+        .mentor-note {
+            margin-top: 1.5rem;
+            padding: 1rem 1.25rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-emerald);
+            font-style: italic;
+        }
+
+        .mentor-note strong {
+            color: var(--accent-emerald);
+        }
+
+        /* Navigation */
+        nav {
+            background: var(--bg-white);
+            border-bottom: 1px solid var(--border-light);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .nav-content {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0;
+        }
+
+        nav li {
+            position: relative;
+        }
+
+        nav a {
+            display: block;
+            padding: 1rem 1.25rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+        }
+
+        nav a:hover {
+            color: var(--primary-blue);
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        nav a.active {
+            color: var(--primary-blue);
+            border-bottom-color: var(--primary-blue);
+        }
+
+        /* Main Content */
+        main {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        section {
+            background: var(--bg-white);
+            border-radius: 12px;
+            padding: 2.5rem;
+            margin-bottom: 2.5rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-light);
+        }
+
+        h2 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.9rem;
+            color: var(--primary-navy);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--accent-orange);
+            display: inline-block;
+        }
+
+        h3 {
+            font-size: 1.35rem;
+            color: var(--primary-navy);
+            margin: 2rem 0 1rem;
+            font-weight: 700;
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--text-dark);
+            margin: 1.5rem 0 0.75rem;
+            font-weight: 700;
+        }
+
+        p {
+            margin-bottom: 1.25rem;
+        }
+
+        /* Introduction Box */
+        .intro-box {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 1px solid #bae6fd;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .intro-box h3 {
+            color: var(--primary-blue);
+            margin-top: 0;
+            margin-bottom: 1rem;
+        }
+
+        /* Key Points Box */
+        .key-points {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 5px solid var(--accent-orange);
+            border-radius: 0 10px 10px 0;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .key-points h4 {
+            color: #92400e;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .key-points ul {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+
+        .key-points li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Tip Box */
+        .tip-box {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border-left: 5px solid var(--accent-emerald);
+            border-radius: 0 10px 10px 0;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .tip-box h4 {
+            color: #065f46;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tip-box h4::before {
+            content: '💡';
+        }
+
+        /* Warning Box */
+        .warning-box {
+            background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
+            border-left: 5px solid var(--accent-rose);
+            border-radius: 0 10px 10px 0;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .warning-box h4 {
+            color: #991b1b;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .warning-box h4::before {
+            content: '⚠️';
+        }
+
+        /* Example Box */
+        .example-box {
+            background: #f8fafc;
+            border: 2px dashed var(--border-light);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .example-box h4 {
+            color: var(--primary-blue);
+            margin-top: 0;
+        }
+
+        .example-box h4::before {
+            content: '📋 ';
+        }
+
+        /* Diagram Container */
+        .diagram-container {
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            overflow-x: auto;
+        }
+
+        .diagram-title {
+            text-align: center;
+            font-weight: 700;
+            color: var(--primary-navy);
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        /* Star Schema Diagram */
+        .star-diagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .fact-table {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, #1d4ed8 100%);
+            color: white;
+            padding: 1.25rem 2rem;
+            border-radius: 8px;
+            font-weight: 700;
+            text-align: center;
+            box-shadow: var(--shadow-md);
+            min-width: 280px;
+        }
+
+        .fact-table .table-name {
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .fact-table .columns {
+            font-size: 0.8rem;
+            font-weight: 400;
+            text-align: left;
+            font-family: 'Fira Code', monospace;
+            background: rgba(0,0,0,0.2);
+            padding: 0.75rem;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+        }
+
+        .dimension-row {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .dimension-table {
+            background: linear-gradient(135deg, var(--accent-emerald) 0%, #059669 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            min-width: 140px;
+            font-size: 0.9rem;
+        }
+
+        .connector-line {
+            width: 2px;
+            height: 30px;
+            background: var(--text-muted);
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        .comparison-table th {
+            background: var(--primary-navy);
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .comparison-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-light);
+            vertical-align: top;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        .comparison-table tr:hover {
+            background: #f1f5f9;
+        }
+
+        /* Data Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.85rem;
+            font-family: 'Fira Code', monospace;
+        }
+
+        .data-table th {
+            background: #475569;
+            color: white;
+            padding: 0.75rem 0.5rem;
+            text-align: left;
+            font-weight: 500;
+            font-size: 0.75rem;
+        }
+
+        .data-table td {
+            padding: 0.6rem 0.5rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .data-table tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        /* Process Flow */
+        .process-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+
+        .process-step {
+            background: var(--primary-blue);
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .process-arrow {
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        /* Code/Schema Display */
+        .schema-display {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 8px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .schema-display .keyword {
+            color: #93c5fd;
+        }
+
+        .schema-display .table-name {
+            color: #fbbf24;
+        }
+
+        .schema-display .column {
+            color: #a7f3d0;
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+            margin: 1.5rem 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0.5rem;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--primary-blue);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 1.5rem;
+            padding-left: 1.5rem;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -1.5rem;
+            top: 0.4rem;
+            width: 14px;
+            height: 14px;
+            background: var(--primary-blue);
+            border-radius: 50%;
+            border: 3px solid var(--bg-white);
+        }
+
+        .timeline-item h5 {
+            font-weight: 700;
+            color: var(--primary-navy);
+            margin-bottom: 0.25rem;
+        }
+
+        /* Summary Box */
+        .summary-box {
+            background: linear-gradient(135deg, var(--primary-navy) 0%, #334155 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .summary-box h3 {
+            color: var(--accent-orange);
+            margin-top: 0;
+        }
+
+        .summary-box ul {
+            padding-left: 1.5rem;
+        }
+
+        .summary-box li {
+            margin-bottom: 0.75rem;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin-bottom: 1.25rem;
+            padding-left: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Highlight */
+        .highlight {
+            background: #fef3c7;
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+        }
+
+        /* Inline code */
+        code {
+            font-family: 'Fira Code', monospace;
+            background: #f1f5f9;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #be185d;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-transaction {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-snapshot {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-accumulating {
+            background: #fae8ff;
+            color: #86198f;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--primary-navy);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        footer p {
+            opacity: 0.8;
+            margin: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+
+            section {
+                padding: 1.5rem;
+            }
+
+            nav a {
+                padding: 0.75rem;
+                font-size: 0.8rem;
+            }
+
+            .dimension-row {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        section {
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <span class="chapter-label">Chapter 11</span>
+            <h1>Transactions, Snapshots, and Accumulating Snapshots</h1>
+            <p class="subtitle">A comprehensive guide to understanding the three fundamental types of fact tables in dimensional modeling — essential knowledge for every data warehouse professional.</p>
+            <div class="mentor-note">
+                <strong>👋 From Your Senior Architect:</strong> Welcome! This manual will walk you through one of the most important chapters in dimensional modeling. Understanding when to use each type of fact table will save you countless hours of rework and help you build efficient, query-friendly data warehouses. Let's dive in!
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <div class="nav-content">
+            <ul>
+                <li><a href="#overview" class="active">Overview</a></li>
+                <li><a href="#transaction">Transaction Facts</a></li>
+                <li><a href="#snapshot">Periodic Snapshots</a></li>
+                <li><a href="#accumulating">Accumulating Snapshots</a></li>
+                <li><a href="#comparison">Comparison</a></li>
+                <li><a href="#summary">Summary</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <!-- SECTION: Overview -->
+        <section id="overview">
+            <h2>What You'll Learn</h2>
+            
+            <div class="intro-box">
+                <h3>🎯 Chapter Objectives</h3>
+                <p>After studying this chapter, you will understand the purpose and characteristics of three types of fact tables. Each solves different analytical challenges, and mastering all three is essential for designing effective dimensional models.</p>
+            </div>
+
+            <div class="key-points">
+                <h4>📌 The Three Types of Fact Tables</h4>
+                <ul>
+                    <li><strong>Transaction Fact Table</strong> <span class="badge badge-transaction">Most Common</span> — Tracks individual activities/events that define a business process</li>
+                    <li><strong>Periodic Snapshot Fact Table</strong> <span class="badge badge-snapshot">For Status</span> — Periodically samples status measurements like balances or inventory levels</li>
+                    <li><strong>Accumulating Snapshot Fact Table</strong> <span class="badge badge-accumulating">For Workflows</span> — Tracks progress of an item through a series of processing steps</li>
+                </ul>
+            </div>
+
+            <p>Some business processes may require only one kind of fact table, but others will require two or more working together. This chapter arms you with an understanding of the capabilities of each, so you can <strong>choose the right design for every situation</strong>.</p>
+
+            <div class="tip-box">
+                <h4>Why This Matters</h4>
+                <p>In real-world data warehouses, using the wrong type of fact table is one of the most common mistakes. It leads to complex queries, poor performance, and frustrated business users. Understanding these three patterns will make you a more effective data modeler.</p>
+            </div>
+        </section>
+
+        <!-- SECTION: Transaction Fact Tables -->
+        <section id="transaction">
+            <h2>Transaction Fact Tables</h2>
+            
+            <p>Transaction fact tables are the most common type you'll encounter. They capture details about <strong>events or activities</strong> — things that happen at a specific point in time. By storing facts and associated dimensional detail, they allow activities to be studied individually and in aggregate.</p>
+
+            <h3>What is a Transaction?</h3>
+            <p>The word "transaction" has a formality to it and connotes the exchange of goods, services, or money. But in fact, <strong>any kind of event can be considered a transaction</strong>:</p>
+            <ul>
+                <li>Booking an order</li>
+                <li>Shipping a product</li>
+                <li>Making a payment</li>
+                <li>Phone calls from customers</li>
+                <li>Student attendance logging</li>
+            </ul>
+            <p>Although no money passes hands in some cases, these activities can still be modeled as transactions.</p>
+
+            <h3>Three Key Properties</h3>
+
+            <h4>1. Grain of Transaction Fact Tables</h4>
+            <p>The grain can be declared in two ways:</p>
+            <ul>
+                <li><strong>By business artifact:</strong> "One row per order line" or "One row per transaction"</li>
+                <li><strong>Dimensionally:</strong> "Orders by day, customer, product, and salesperson"</li>
+            </ul>
+            
+            <div class="warning-box">
+                <h4>Important Note</h4>
+                <p>Although the word "transaction" appears in its name, a transaction fact table's grain is <strong>not always the individual transaction</strong>. Many real-world fact tables summarize activities — combining multiple transactions into single rows when they share the same dimensional values.</p>
+            </div>
+
+            <h4>2. Transaction Fact Tables Are Sparse</h4>
+            <p>This is crucial: rows are recorded <strong>only for activities that take place</strong>, not for every possible combination of dimension values.</p>
+
+            <div class="example-box">
+                <h4>Example</h4>
+                <p>An orders fact table does NOT record rows each day for every combination of salesperson, product, and customer. That would lead to excessive growth and clutter reports with zero-valued rows. Instead, rows are only recorded when orders actually occur.</p>
+            </div>
+
+            <h4>3. Transaction Fact Tables Contain Additive Facts</h4>
+            <p>Transaction fact tables normally record <strong>fully additive facts</strong> — measurements that can be summed across all dimensions.</p>
+
+            <div class="tip-box">
+                <h4>Handling Non-Additive Facts</h4>
+                <p>Most nonadditive measurements, such as ratios, should be broken down into fully additive components. For example, instead of storing "margin rate" (10%), store the components:</p>
+                <ul>
+                    <li><code>margin_dollars</code> — fully additive</li>
+                    <li><code>order_dollars</code> — fully additive</li>
+                </ul>
+                <p>Then compute the ratio after aggregation: <strong>You want the ratio of the sums, not the sum of the ratios!</strong></p>
+            </div>
+
+            <!-- Transaction Diagram -->
+            <div class="diagram-container">
+                <div class="diagram-title">Figure 11-1: Transaction Fact Table — Bank Account Activity</div>
+                <div class="star-diagram">
+                    <div class="dimension-row">
+                        <div class="dimension-table">DAY</div>
+                        <div class="dimension-table">TIME</div>
+                        <div class="dimension-table">ACCOUNT</div>
+                        <div class="dimension-table">TELLER</div>
+                    </div>
+                    <div class="connector-line"></div>
+                    <div class="fact-table">
+                        <div class="table-name">ACCOUNT_FACTS</div>
+                        <div class="columns">
+                            day_key (FK)<br>
+                            time_key (FK)<br>
+                            account_key (FK)<br>
+                            teller_key (FK)<br>
+                            branch_key_account (FK)<br>
+                            branch_key_transaction (FK)<br>
+                            acct_holder_key_primary (FK)<br>
+                            transaction_type_key (FK)<br>
+                            transaction_id (DD)<br>
+                            <strong>transaction_amount</strong>
+                        </div>
+                    </div>
+                    <div class="connector-line"></div>
+                    <div class="dimension-row">
+                        <div class="dimension-table">BRANCH<br><small>(2 roles)</small></div>
+                        <div class="dimension-table">ACCOUNT_HOLDER</div>
+                        <div class="dimension-table">TRANSACTION_TYPE</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Sample Transaction Data</h3>
+            <p>Here's what granular transaction data looks like for a single account over two weeks:</p>
+            
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Day</th>
+                        <th>Transaction Type</th>
+                        <th>Transaction Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>2/1/2009</td><td>Initial Deposit</td><td>$2,000.00</td></tr>
+                    <tr><td>2/2/2009</td><td>Withdrawal</td><td>($20.00)</td></tr>
+                    <tr><td>2/3/2009</td><td>Withdrawal</td><td>($35.50)</td></tr>
+                    <tr><td>2/3/2009</td><td>Check</td><td>($17.02)</td></tr>
+                    <tr><td>2/6/2009</td><td>Check</td><td>($75.00)</td></tr>
+                    <tr><td>2/6/2009</td><td>Check</td><td>($800.00)</td></tr>
+                    <tr><td>2/7/2009</td><td>Check</td><td>($100.00)</td></tr>
+                    <tr><td>2/10/2009</td><td>Check</td><td>($68.29)</td></tr>
+                    <tr><td>2/14/2009</td><td>Deposit</td><td>$75.00</td></tr>
+                </tbody>
+            </table>
+            <p><em>Notice: Only 9 rows for 2 weeks — rows exist only when activity occurs. This is sparsity in action.</em></p>
+
+            <div class="summary-box">
+                <h3>🔑 Transaction Fact Table Key Takeaways</h3>
+                <ul>
+                    <li>Captures <strong>events/activities</strong> at specific points in time</li>
+                    <li>Grain defined by transaction or dimensional terms</li>
+                    <li><strong>Sparse</strong> — rows only for actual activities</li>
+                    <li>Contains <strong>fully additive facts</strong></li>
+                    <li>Most common fact table type you'll work with</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- SECTION: Snapshot Fact Tables -->
+        <section id="snapshot">
+            <h2>Periodic Snapshot Fact Tables</h2>
+
+            <p>Sometimes, measuring the <strong>effect of a series of transactions</strong> is as useful as measuring the transactions themselves. These effects are called <strong>status measurements</strong>.</p>
+
+            <h3>The Challenge: Studying Status</h3>
+            <p>Common status measurements include:</p>
+            <ul>
+                <li><strong>Account balances</strong> — the cumulative effect of deposits and withdrawals</li>
+                <li><strong>Inventory levels</strong> — deliveries minus removals</li>
+                <li><strong>Water level in a reservoir</strong></li>
+                <li><strong>Temperature readings</strong></li>
+            </ul>
+
+            <div class="warning-box">
+                <h4>Why Transaction Tables Fall Short</h4>
+                <p>Computing balance from transaction history can be inefficient:</p>
+                <ul>
+                    <li>An account open for 50 years might require aggregating thousands of transactions</li>
+                    <li>To get total deposits for all customers, you'd have to do this for every account</li>
+                    <li>Some measurements (like temperature) have no corresponding transactions at all</li>
+                </ul>
+            </div>
+
+            <h3>Don't Store Balance with Each Transaction!</h3>
+            <p>You might think: "Why not just add a balance column to the transaction fact table?" This approach has two critical problems:</p>
+
+            <div class="key-points">
+                <h4>📌 Problems with Storing Balance in Transaction Facts</h4>
+                <ul>
+                    <li><strong>Problem 1: Sparsity</strong> — If there's no activity on a day, there's no row to record the balance. Finding the balance would require searching backward through time.</li>
+                    <li><strong>Problem 2: Double-counting</strong> — If there are multiple transactions on the same day, the balance would appear multiple times, causing queries to double-count.</li>
+                </ul>
+            </div>
+
+            <div class="tip-box">
+                <h4>Golden Rule</h4>
+                <p>Storing a transaction and its effect (balance) in the same row of a fact table is <strong>always problematic</strong>. When you need to study status measurements, use a separate snapshot fact table.</p>
+            </div>
+
+            <h3>The Snapshot Model</h3>
+            <p>A <strong>periodic snapshot fact table</strong> samples the measurement in question at a predetermined interval. This makes it easy to study status without aggregating long chains of transaction history.</p>
+
+            <!-- Snapshot Diagram -->
+            <div class="diagram-container">
+                <div class="diagram-title">Figure 11-2: Snapshot Fact Table — Daily Account Balances</div>
+                <div class="star-diagram">
+                    <div class="dimension-row">
+                        <div class="dimension-table">DAY</div>
+                        <div class="dimension-table">ACCOUNT</div>
+                        <div class="dimension-table">BRANCH<br><small>(account branch)</small></div>
+                        <div class="dimension-table">ACCOUNT_HOLDER<br><small>(primary)</small></div>
+                    </div>
+                    <div class="connector-line"></div>
+                    <div class="fact-table">
+                        <div class="table-name">ACCOUNT_SNAPSHOT_FACTS</div>
+                        <div class="columns">
+                            day_key (FK)<br>
+                            account_key (FK)<br>
+                            branch_key_account (FK)<br>
+                            acct_holder_key_primary (FK)<br>
+                            <strong>balance</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Snapshot Grain</h3>
+            <p>The grain of a snapshot has <strong>two essential parts</strong>:</p>
+            <ol>
+                <li><strong>The snapshot period</strong> — How often status is sampled (daily, monthly, etc.)</li>
+                <li><strong>What is being sampled</strong> — One or more dimensions defining what's measured</li>
+            </ol>
+
+            <div class="example-box">
+                <h4>Grain Statement Examples</h4>
+                <ul>
+                    <li>"<strong>Daily</strong> snapshot of balance for each <strong>account</strong>"</li>
+                    <li>"<strong>Daily</strong> snapshot of in-stock product levels by <strong>product</strong> and <strong>location</strong>"</li>
+                    <li>"<strong>Monthly</strong> snapshot of balance by <strong>account</strong>"</li>
+                </ul>
+            </div>
+
+            <h3>Density vs. Sparsity</h3>
+            <p>Here's a critical difference: <strong>while transaction fact tables are sparse, snapshots are DENSE.</strong></p>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Transaction Data (Sparse)</th>
+                        <th>Snapshot Data (Dense)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <strong>9 rows</strong> for 2 weeks<br>
+                            Only when activity occurs
+                        </td>
+                        <td>
+                            <strong>14 rows</strong> for 2 weeks<br>
+                            One row per day, regardless of activity
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>Comparison: Transactions vs. Daily Balances</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <table class="data-table">
+                    <thead>
+                        <tr><th colspan="2">Transactions (Sparse)</th></tr>
+                        <tr><th>Day</th><th>Amount</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>2/1</td><td>$2,000.00</td></tr>
+                        <tr><td>2/2</td><td>($20.00)</td></tr>
+                        <tr><td>2/3</td><td>($35.50)</td></tr>
+                        <tr><td>2/3</td><td>($17.02)</td></tr>
+                        <tr><td>2/6</td><td>($75.00)</td></tr>
+                        <tr><td>2/6</td><td>($800.00)</td></tr>
+                        <tr><td>2/7</td><td>($100.00)</td></tr>
+                        <tr><td>2/10</td><td>($68.29)</td></tr>
+                        <tr><td>2/14</td><td>$75.00</td></tr>
+                    </tbody>
+                </table>
+                <table class="data-table">
+                    <thead>
+                        <tr><th colspan="2">Snapshot (Dense)</th></tr>
+                        <tr><th>Day</th><th>Balance</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>2/1</td><td>$2,000.00</td></tr>
+                        <tr><td>2/2</td><td>$1,980.00</td></tr>
+                        <tr><td>2/3</td><td>$1,927.48</td></tr>
+                        <tr><td>2/4</td><td>$1,927.48</td></tr>
+                        <tr><td>2/5</td><td>$1,927.48</td></tr>
+                        <tr><td>2/6</td><td>$1,052.48</td></tr>
+                        <tr><td>2/7</td><td>$952.48</td></tr>
+                        <tr><td>2/8</td><td>$952.48</td></tr>
+                        <tr><td>2/9</td><td>$952.48</td></tr>
+                        <tr><td>2/10</td><td>$884.19</td></tr>
+                        <tr><td>2/11</td><td>$884.19</td></tr>
+                        <tr><td>2/12</td><td>$884.19</td></tr>
+                        <tr><td>2/13</td><td>$884.19</td></tr>
+                        <tr><td>2/14</td><td>$959.19</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="tip-box">
+                <h4>Why Density Matters</h4>
+                <p>This density is crucial! Without a row for each snapshot period, determining status becomes complex — you'd have to search backward through time until you find a value. With a dense snapshot, you simply query the date you want.</p>
+            </div>
+
+            <h3>Semi-Additivity</h3>
+            <p>This is one of the most important concepts to understand about snapshots:</p>
+
+            <div class="warning-box">
+                <h4>Semi-Additive Facts Cannot Be Summed Across Time</h4>
+                <p>If you have $100 in your account at the end of each day of the week, that does <strong>NOT</strong> mean you have $700 at the end of the week! Your account balance is <strong>not additive across time</strong>.</p>
+                <p>However, the balance IS additive across other dimensions — you CAN add together balances from multiple accounts on the same day.</p>
+            </div>
+
+            <p>While semi-additive facts can't be summed across time, they can be meaningfully summarized using:</p>
+            <ul>
+                <li><strong>Average</strong> — Average daily balance</li>
+                <li><strong>Minimum</strong> — Lowest balance in period</li>
+                <li><strong>Maximum</strong> — Highest balance in period</li>
+                <li><strong>Last</strong> — Period-end balance</li>
+            </ul>
+
+            <h3>Embellishing the Snapshot</h3>
+            <p>A snapshot can be enhanced with additional facts to make reporting easier:</p>
+
+            <!-- Enhanced Snapshot Diagram -->
+            <div class="diagram-container">
+                <div class="diagram-title">Figure 11-4: Enhanced Monthly Account Snapshot</div>
+                <div class="star-diagram">
+                    <div class="dimension-row">
+                        <div class="dimension-table">MONTH</div>
+                        <div class="dimension-table">ACCOUNT</div>
+                        <div class="dimension-table">BRANCH</div>
+                        <div class="dimension-table">ACCOUNT_HOLDER</div>
+                    </div>
+                    <div class="connector-line"></div>
+                    <div class="fact-table">
+                        <div class="table-name">ACCOUNT_MONTHLY_SNAPSHOT</div>
+                        <div class="columns">
+                            month_key (FK)<br>
+                            account_key (FK)<br>
+                            branch_key (FK)<br>
+                            acct_holder_key (FK)<br>
+                            ─────────────────────<br>
+                            <strong>begin_balance</strong> (redundant but useful)<br>
+                            <strong>end_balance</strong> (semi-additive)<br>
+                            <strong>sum_daily_balances</strong> (for averaging)<br>
+                            ─────────────────────<br>
+                            <strong>deposit_count</strong> (additive)<br>
+                            <strong>deposit_dollars</strong> (additive)<br>
+                            <strong>withdrawal_count</strong> (additive)<br>
+                            <strong>withdrawal_dollars</strong> (additive)<br>
+                            <strong>fee_count</strong> (additive)<br>
+                            <strong>fee_dollars</strong> (additive)
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="key-points">
+                <h4>📌 Types of Facts in an Enhanced Snapshot</h4>
+                <ul>
+                    <li><strong>Period-begin and period-end balances:</strong> Redundant but make reports much easier to build</li>
+                    <li><strong>Sum of daily balances:</strong> Allows computing average balance across aggregations</li>
+                    <li><strong>Fully additive facts:</strong> Transaction counts and dollar amounts summarize the period's activity</li>
+                    <li><strong>Period-to-date facts:</strong> YTD, QTD, MTD measurements</li>
+                </ul>
+            </div>
+
+            <h3>Period-to-Date Measurements</h3>
+            <p>A snapshot is the logical home for period-to-date measurements (MTD, QTD, YTD, lifetime-to-date). Like balances, these:</p>
+            <ul>
+                <li>Measure cumulative effect of activities</li>
+                <li>Are NOT additive across time</li>
+                <li>Cannot be stored reliably with transactions</li>
+            </ul>
+
+            <h3>Snapshots and Slow Changes</h3>
+            <div class="tip-box">
+                <h4>Important Rule for Type 2 Changes</h4>
+                <p>A periodic snapshot records <strong>only one row for each combination of natural keys</strong> in the dimensions that define its grain. When a dimension undergoes a Type 2 slow change (creating multiple rows for the same entity), the snapshot should only reference the version that was current at snapshot time. Recording more than one would cause double-counting!</p>
+            </div>
+
+            <div class="summary-box">
+                <h3>🔑 Snapshot Fact Table Key Takeaways</h3>
+                <ul>
+                    <li>Samples <strong>status measurements</strong> at predetermined intervals</li>
+                    <li>Grain = <strong>period + what is being sampled</strong></li>
+                    <li><strong>Dense</strong> — rows exist for every period, regardless of activity</li>
+                    <li>Contains <strong>semi-additive facts</strong> (can't sum across time)</li>
+                    <li>Can be embellished with period-begin, period-end, and additive summary facts</li>
+                    <li>Only one row per natural key combination (to avoid double-counting)</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- SECTION: Accumulating Snapshot Fact Tables -->
+        <section id="accumulating">
+            <h2>Accumulating Snapshot Fact Tables</h2>
+
+            <p>The third type of fact table is used when you need to track the <strong>progress of an item through a series of processing steps</strong> and analyze the <strong>elapsed time between events</strong>.</p>
+
+            <h3>The Challenge: Studying Elapsed Time</h3>
+            <p>Many business processes can be described as a series of stages or steps:</p>
+
+            <div class="process-flow">
+                <span class="process-step">Submitted</span>
+                <span class="process-arrow">→</span>
+                <span class="process-step">Reviewed</span>
+                <span class="process-arrow">→</span>
+                <span class="process-step">Processed</span>
+                <span class="process-arrow">→</span>
+                <span class="process-step">Underwritten</span>
+                <span class="process-arrow">→</span>
+                <span class="process-step">Settled</span>
+            </div>
+
+            <p>Common examples include:</p>
+            <ul>
+                <li><strong>Manufacturing:</strong> ordered → manufactured → QA'd → packaged → shipped</li>
+                <li><strong>Mortgage processing:</strong> submitted → reviewed → processed → underwritten → settled</li>
+                <li><strong>Technical support:</strong> logged → assigned → diagnosed → closed</li>
+            </ul>
+
+            <p>The efficiency of a process is often measured by <strong>how long it takes to complete steps</strong>:</p>
+            <ul>
+                <li>Average days between order and shipment</li>
+                <li>Time from application to settlement, grouped by loan type</li>
+                <li>How long tickets spend in each status</li>
+            </ul>
+
+            <h3>Where Transaction Tables Fall Short</h3>
+            <p>You could track status changes in a transaction fact table (one row per status change), but this creates problems:</p>
+
+            <div class="warning-box">
+                <h4>The Correlated Subquery Problem</h4>
+                <p>To figure out how long it took to review an application requires computing elapsed days between submission and approval — but these are in <strong>separate rows</strong>. For a group of applications, this requires a <strong>correlated subquery</strong> — complex to write and poor performing.</p>
+            </div>
+
+            <h4>What About Begin and End Dates?</h4>
+            <p>Adding begin/end dates for each status helps for adjacent stages, but:</p>
+            <ul>
+                <li>Doesn't help when processes aren't linear (items can go back to prior stages)</li>
+                <li>Doesn't help when measuring time across <strong>multiple stages</strong> (e.g., submission to settlement)</li>
+            </ul>
+
+            <h3>The Accumulating Snapshot Design</h3>
+            <p>An accumulating snapshot is fundamentally different from other fact tables:</p>
+
+            <div class="key-points">
+                <h4>📌 Unique Characteristics</h4>
+                <ul>
+                    <li><strong>One row per identifiable entity</strong> being processed (application, order, ticket)</li>
+                    <li><strong>Rows are UPDATED</strong> as the process unfolds (unlike other fact tables!)</li>
+                    <li><strong>Multiple date keys</strong> — one for each major milestone</li>
+                    <li><strong>Elapsed time facts</strong> — days spent at each stage</li>
+                </ul>
+            </div>
+
+            <!-- Accumulating Snapshot Diagram -->
+            <div class="diagram-container">
+                <div class="diagram-title">Figure 11-6: Accumulating Snapshot — Mortgage Processing</div>
+                <div class="star-diagram">
+                    <div class="dimension-row">
+                        <div class="dimension-table">DAY<br><small>(5 roles)</small></div>
+                        <div class="dimension-table">APPLICATION</div>
+                        <div class="dimension-table">EMPLOYEE<br><small>(3 roles)</small></div>
+                        <div class="dimension-table">STATUS</div>
+                    </div>
+                    <div class="connector-line"></div>
+                    <div class="fact-table">
+                        <div class="table-name">MORTGAGE_PROCESSING_FACTS</div>
+                        <div class="columns">
+                            <em>-- Milestone Dates --</em><br>
+                            day_key_submitted (FK)<br>
+                            day_key_reviewed (FK)<br>
+                            day_key_processed (FK)<br>
+                            day_key_underwritten (FK)<br>
+                            day_key_settled (FK)<br>
+                            <em>-- Entity & Role FKs --</em><br>
+                            application_key (FK)<br>
+                            employee_key_officer (FK)<br>
+                            employee_key_processor (FK)<br>
+                            employee_key_underwriter (FK)<br>
+                            status_key (FK)<br>
+                            <em>-- Elapsed Time Facts --</em><br>
+                            <strong>days_reviewing</strong><br>
+                            <strong>days_processing</strong><br>
+                            <strong>days_underwriting</strong><br>
+                            <strong>days_pending_settlement</strong><br>
+                            <strong>days_submitted_to_settled</strong><br>
+                            <em>-- Value Facts --</em><br>
+                            application_amount<br>
+                            review_amount<br>
+                            underwriting_amount<br>
+                            settlement_amount
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Life Cycle of a Row</h3>
+            <p>Unlike other fact tables, accumulating snapshot rows are <strong>updated regularly</strong>. Here's how a single row evolves:</p>
+
+            <div class="timeline">
+                <div class="timeline-item">
+                    <h5>Day 1 — Application Submitted</h5>
+                    <p>Row inserted with <code>day_key_submitted</code> = today. Other date keys = 0 (special "not yet" value). <code>days_reviewing</code> = 0.</p>
+                </div>
+                <div class="timeline-item">
+                    <h5>Day 2 — No Status Change</h5>
+                    <p><code>days_reviewing</code> incremented to 1. Application still under review.</p>
+                </div>
+                <div class="timeline-item">
+                    <h5>Days 3-9 — Still Under Review</h5>
+                    <p><code>days_reviewing</code> continues incrementing daily.</p>
+                </div>
+                <div class="timeline-item">
+                    <h5>Day 10 — Review Complete</h5>
+                    <p><code>day_key_reviewed</code> = today. <code>days_reviewing</code> = 9 (final). <code>review_amount</code> = $90,000 (officer changed amount). Now <code>days_processing</code> starts incrementing.</p>
+                </div>
+                <div class="timeline-item">
+                    <h5>Day 11+ — Processing Stage</h5>
+                    <p><code>days_processing</code> increments daily until next milestone...</p>
+                </div>
+            </div>
+
+            <h4>Row Evolution Visualization</h4>
+            <div class="diagram-container">
+                <div class="diagram-title">Evolution of a Single Row Over Time</div>
+                <table class="data-table" style="font-size: 0.75rem;">
+                    <thead>
+                        <tr>
+                            <th>When</th>
+                            <th>day_key_<br>submitted</th>
+                            <th>day_key_<br>reviewed</th>
+                            <th>days_<br>reviewing</th>
+                            <th>days_<br>processing</th>
+                            <th>review_<br>amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Day 1</strong> (Submitted)</td><td style="background:#dcfce7">1021</td><td>0000</td><td>0</td><td>0</td><td>$0</td></tr>
+                        <tr><td><strong>Day 2</strong> (No change)</td><td>1021</td><td>0000</td><td style="background:#dcfce7">1</td><td>0</td><td>$0</td></tr>
+                        <tr><td><strong>Day 10</strong> (Reviewed)</td><td>1021</td><td style="background:#dcfce7">1031</td><td style="background:#dcfce7">9</td><td>0</td><td style="background:#dcfce7">$90,000</td></tr>
+                        <tr><td><strong>Day 11</strong> (No change)</td><td>1021</td><td>1031</td><td>9</td><td style="background:#dcfce7">1</td><td>$90,000</td></tr>
+                    </tbody>
+                </table>
+                <p style="text-align: center; margin-top: 1rem; color: var(--text-muted); font-size: 0.85rem;">
+                    <span style="background:#dcfce7; padding: 2px 8px; border-radius: 3px;">Green</span> = Values that changed
+                </p>
+            </div>
+
+            <div class="tip-box">
+                <h4>"Lags" Between Milestones</h4>
+                <p>The elapsed time facts are sometimes called "lags" because they represent elapsed time between milestones. <code>days_reviewing</code> could also be named <code>lag_submitted_reviewed</code>. Naming after the stage is more flexible for nonlinear processes.</p>
+            </div>
+
+            <h3>Pairing Transaction and Accumulating Snapshots</h3>
+            <p>Transaction and accumulating snapshot models <strong>complement each other beautifully</strong>:</p>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Transaction Star</th>
+                        <th>Accumulating Snapshot</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Study processing volumes at each step</td>
+                        <td>Study elapsed time between steps</td>
+                    </tr>
+                    <tr>
+                        <td>Analyze workload by stage</td>
+                        <td>Measure process efficiency</td>
+                    </tr>
+                    <tr>
+                        <td>One row per status change</td>
+                        <td>One row per entity (updated)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="tip-box">
+                <h4>Best Practice</h4>
+                <p>If you build both, design the <strong>accumulating snapshot to use the transaction star as its source</strong>. Both can connect to the operational system, but using the transaction star as the source simplifies ETL and eliminates redundancy.</p>
+            </div>
+
+            <h3>Focus on Key Milestones</h3>
+            <p>Operational systems may track dozens of status codes, but your accumulating snapshot should focus on <strong>major milestones</strong> that the business cares about:</p>
+
+            <div class="diagram-container">
+                <div class="diagram-title">Mapping Operational Statuses to Major Milestones</div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Operational Status Codes</th>
+                            <th>→</th>
+                            <th>Milestone Category</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>S1: Submitted</td><td rowspan="3">→</td><td rowspan="3" style="background:#dbeafe"><strong>SUBMITTED</strong></td></tr>
+                        <tr><td>S2: Under review by officer</td></tr>
+                        <tr><td>S3: Awaiting customer response</td></tr>
+                        <tr><td>R1: Under review by processor</td><td rowspan="8">→</td><td rowspan="8" style="background:#dcfce7"><strong>REVIEWED</strong> (Processing stage)</td></tr>
+                        <tr><td>R2: Taxes requested</td></tr>
+                        <tr><td>R3: Paystubs requested</td></tr>
+                        <tr><td>R4: Credit fee requested</td></tr>
+                        <tr><td>R5: Taxes received</td></tr>
+                        <tr><td>R6: Paystubs received</td></tr>
+                        <tr><td>R7: Credit fee received</td></tr>
+                        <tr><td>R8: Credit report ordered</td></tr>
+                        <tr><td>U1: Forwarded to underwriter</td><td>→</td><td style="background:#fae8ff"><strong>PROCESSED</strong> (Underwriting stage)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Handling Nonlinear Processes</h3>
+            <p>Many processes aren't strictly linear — items may skip steps or return to prior stages:</p>
+
+            <div class="process-flow">
+                <span class="process-step">Submitted</span>
+                <span class="process-arrow">→</span>
+                <span class="process-step">Reviewed</span>
+                <span class="process-arrow">→</span>
+                <span class="process-step" style="background: var(--accent-rose)">Submitted</span>
+                <span class="process-arrow">→</span>
+                <span class="process-step">...</span>
+            </div>
+            <p style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-top: -0.5rem;">Application returned due to missing signature</p>
+
+            <div class="key-points">
+                <h4>📌 Rules for Nonlinear Processes</h4>
+                <ul>
+                    <li><strong>Elapsed time:</strong> If application returns to "Submitted," resume incrementing <code>days_reviewing</code></li>
+                    <li><strong>Milestone dates:</strong> Work with business to define rules:
+                        <ul>
+                            <li>Submission date = <em>earliest</em> date status was assigned?</li>
+                            <li>Approval date = <em>latest</em> date approval was granted?</li>
+                        </ul>
+                    </li>
+                    <li><strong>These are business decisions</strong>, not technical ones — let business users decide</li>
+                </ul>
+            </div>
+
+            <h3>Slow Changes in Accumulating Snapshots</h3>
+
+            <div class="warning-box">
+                <h4>Critical Rule for Type 2 Changes</h4>
+                <p>The accumulating snapshot should contain <strong>only one row per natural key</strong> of the defining dimension. When a Type 2 change occurs:</p>
+                <ul>
+                    <li>The dimension table will have multiple rows (old and new version)</li>
+                    <li>The fact table should be <strong>updated with the most recent surrogate key</strong></li>
+                    <li><strong>Never use natural keys</strong> in accumulating snapshots — this would cause double-counting</li>
+                </ul>
+            </div>
+
+            <div class="tip-box">
+                <h4>Side Effect to Expect</h4>
+                <p>Because of this, the dimension table may have <strong>more rows than the fact table</strong>. This is correct and expected! It can pose tuning challenges — star-join optimization may not be the most efficient approach for queries on accumulating snapshots.</p>
+            </div>
+
+            <div class="summary-box">
+                <h3>🔑 Accumulating Snapshot Key Takeaways</h3>
+                <ul>
+                    <li>Tracks <strong>progress through processing steps</strong></li>
+                    <li>Grain = <strong>one row per identifiable entity</strong> (application, order, ticket)</li>
+                    <li><strong>Rows are regularly UPDATED</strong> — unique among fact tables</li>
+                    <li>Multiple <strong>milestone date keys</strong> — one per processing stage</li>
+                    <li><strong>Elapsed time facts</strong> track days at each stage</li>
+                    <li>Pairs well with transaction stars — each answers different questions</li>
+                    <li>Focus on <strong>key business milestones</strong>, not all operational statuses</li>
+                    <li>For Type 2 changes: <strong>update to most recent surrogate key</strong></li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- SECTION: Comparison -->
+        <section id="comparison">
+            <h2>Comparison: All Three Types</h2>
+
+            <p>Here's a side-by-side comparison to help you choose the right fact table type for your needs:</p>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Characteristic</th>
+                        <th><span class="badge badge-transaction">Transaction</span></th>
+                        <th><span class="badge badge-snapshot">Periodic Snapshot</span></th>
+                        <th><span class="badge badge-accumulating">Accumulating Snapshot</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Purpose</strong></td>
+                        <td>Track events/activities</td>
+                        <td>Sample status/balance at intervals</td>
+                        <td>Track progress through process steps</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Grain</strong></td>
+                        <td>One row per event (or summary)</td>
+                        <td>One row per entity per period</td>
+                        <td>One row per entity being processed</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Density</strong></td>
+                        <td>Sparse (only when activity occurs)</td>
+                        <td>Dense (every period)</td>
+                        <td>One row per entity</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Facts</strong></td>
+                        <td>Fully additive</td>
+                        <td>Semi-additive (+ additive embellishments)</td>
+                        <td>Additive (elapsed time) + milestone values</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Rows Updated?</strong></td>
+                        <td>No (insert only)</td>
+                        <td>No (insert only)</td>
+                        <td><strong>Yes</strong> (regularly updated)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Time Dimension</strong></td>
+                        <td>Single date/time of event</td>
+                        <td>Single period dimension</td>
+                        <td>Multiple date keys (one per milestone)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Best For</strong></td>
+                        <td>Activity analysis, volume metrics, drill-to-detail</td>
+                        <td>Balance/level analysis, period comparisons</td>
+                        <td>Process efficiency, elapsed time analysis</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Example Questions</strong></td>
+                        <td>"How many orders this month?"<br>"What was the margin on this order?"</td>
+                        <td>"What was total deposits at month-end?"<br>"Average account balance?"</td>
+                        <td>"Average days to process applications?"<br>"Where are bottlenecks?"</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>When to Use Each Type</h3>
+
+            <div class="example-box">
+                <h4>Use Transaction Fact Table When...</h4>
+                <ul>
+                    <li>You need to track individual events or activities</li>
+                    <li>You want to aggregate activities by various dimensions</li>
+                    <li>You need granular drill-down capability</li>
+                    <li>Questions are about "how many" and "how much"</li>
+                </ul>
+            </div>
+
+            <div class="example-box">
+                <h4>Use Periodic Snapshot When...</h4>
+                <ul>
+                    <li>You need to track status measurements (balances, levels, inventory)</li>
+                    <li>Computing status from transactions would be inefficient</li>
+                    <li>Status has no corresponding transactions (temperature, etc.)</li>
+                    <li>Questions are about "what was the balance/level at point X"</li>
+                </ul>
+            </div>
+
+            <div class="example-box">
+                <h4>Use Accumulating Snapshot When...</h4>
+                <ul>
+                    <li>Items move through defined processing stages</li>
+                    <li>You need to measure elapsed time between stages</li>
+                    <li>Individual items can be uniquely identified</li>
+                    <li>Questions are about "how long does it take" and "where are delays"</li>
+                </ul>
+            </div>
+
+            <div class="tip-box">
+                <h4>Remember: You Can Combine Them!</h4>
+                <p>It's not an either/or decision. A single business process may need <strong>two or even all three</strong> types of fact tables working together. The inventory process, for example, can benefit from a transaction star (track shipments), a periodic snapshot (track levels), and an accumulating snapshot (track order fulfillment stages).</p>
+            </div>
+        </section>
+
+        <!-- SECTION: Summary -->
+        <section id="summary">
+            <h2>Chapter Summary</h2>
+
+            <div class="intro-box">
+                <h3>🎓 What You've Learned</h3>
+                <p>This chapter introduced the three fundamental types of fact tables in dimensional modeling. Each serves a distinct analytical purpose, and mastering all three is essential for effective data warehouse design.</p>
+            </div>
+
+            <h3>Key Points to Remember</h3>
+
+            <div class="key-points">
+                <h4>📌 Transaction Fact Tables</h4>
+                <ul>
+                    <li>Track events — grain corresponds to individual transaction or summary</li>
+                    <li>Sparse — rows only for actual activities</li>
+                    <li>Contain fully additive facts</li>
+                    <li>Most common fact table type</li>
+                </ul>
+            </div>
+
+            <div class="key-points">
+                <h4>📌 Periodic Snapshot Fact Tables</h4>
+                <ul>
+                    <li>Sample status at predefined intervals across specified dimensions</li>
+                    <li>Dense — unlike transaction tables</li>
+                    <li>Contain semi-additive facts (can't sum across time)</li>
+                    <li>Can be embellished with period-begin, period-end, and additive summary facts</li>
+                    <li>One row per combination of natural keys (avoid double-counting)</li>
+                </ul>
+            </div>
+
+            <div class="key-points">
+                <h4>📌 Accumulating Snapshot Fact Tables</h4>
+                <ul>
+                    <li>Track progress through processing steps — one row per entity</li>
+                    <li>Rows are repeatedly updated as process unfolds</li>
+                    <li>Multiple day_keys represent milestone achievements</li>
+                    <li>Facts record elapsed time at each stage</li>
+                    <li>For Type 2 changes: use most recent surrogate key</li>
+                </ul>
+            </div>
+
+            <h3>Final Advice from Your Senior Architect</h3>
+
+            <div class="mentor-note" style="background: rgba(16, 185, 129, 0.1); border-left-color: var(--accent-emerald);">
+                <p><strong>🏆 Remember these principles:</strong></p>
+                <ol>
+                    <li><strong>Know your analytical requirements first.</strong> The right design depends on what questions the business needs to answer.</li>
+                    <li><strong>Don't force one type to do another's job.</strong> If you find yourself writing complex queries with correlated subqueries, you probably need a different fact table type.</li>
+                    <li><strong>Multiple fact tables can work together.</strong> Transaction and accumulating snapshots complement each other beautifully — don't be afraid to use both.</li>
+                    <li><strong>Never store balances with transactions.</strong> This is one of the most common mistakes — it always leads to problems.</li>
+                    <li><strong>Be careful with Type 2 changes.</strong> Always use the most recent surrogate key to avoid double-counting.</li>
+                </ol>
+            </div>
+
+            <h3>Further Reading</h3>
+            <p>For additional examples and deeper dives into these topics, consult:</p>
+            <ul>
+                <li><em>The Data Warehouse Toolkit, Second Edition</em> by Ralph Kimball and Margy Ross</li>
+                <li><em>Data Warehouse Design Solutions</em> by Chris Adamson and Mike Venerable</li>
+                <li><em>Mastering Data Warehouse Aggregates</em> by Chris Adamson</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>Chapter 11 Manual — Based on "Star Schema: The Complete Reference" by Christopher Adamson</p>
+        <p style="font-size: 0.9rem; margin-top: 0.5rem; opacity: 0.7;">Created for junior data modelers by your senior architect 👨‍💻</p>
+    </footer>
+
+    <script>
+        // Simple navigation highlighting on scroll
+        document.addEventListener('DOMContentLoaded', function() {
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('nav a');
+            
+            function updateNav() {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop - 100;
+                    if (pageYOffset >= sectionTop) {
+                        current = section.getAttribute('id');
+                    }
+                });
+                
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === '#' + current) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+            
+            window.addEventListener('scroll', updateNav);
+            updateNav();
+        });
+    </script>
+</body>
+</html>
