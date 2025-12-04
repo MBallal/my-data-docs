@@ -1,0 +1,41 @@
+# Cursor Rules - Project Preferences
+
+## Environment
+- Operating System: Linux
+- Shell: Bash
+
+## Documentation Style
+- Use Markdown for all documentation
+- Include tables for structured data (use proper markdown table formatting)
+- Add revision history tables to formal documents
+- Use clear section headers with emoji icons for visual organization
+
+## Diagrams
+- Use Mermaid syntax for all diagrams (ERD, flowcharts, sequence diagrams)
+- For ER diagrams: include data types, primary keys (PK), foreign keys (FK), and unique keys (UK)
+- Create both .md and .html versions for diagrams (HTML for interactive viewing)
+- Group related entities with comments in Mermaid code
+
+## Code Style
+- Add clear comments explaining complex logic
+- Use descriptive variable and function names
+- Prefer readability over brevity
+
+## Response Preferences
+- Be concise but thorough
+- Provide practical examples
+- Show command-line alternatives when relevant
+- Include summary tables for complex information
+- Explain the "why" not just the "how"
+
+## Data Modeling
+- Follow the templates in /workspace/Templates/ for data documentation
+- Include data definitions with: Column, Business Description, Data Type, Nullable
+- Document all relationships between entities
+- Add index recommendations for database schemas
+- List assumptions clearly
+
+## File Organization
+- Keep related files together
+- Use clear, descriptive file names
+- Follow existing project naming conventions
