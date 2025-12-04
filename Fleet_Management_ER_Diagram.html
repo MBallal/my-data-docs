@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fleet Management System - Entity Relationship Diagram</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 40px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            color: #00d4ff;
+            margin-bottom: 10px;
+            text-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: #a0a0a0;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        
+        .color-core { background: #4fc3f7; }
+        .color-trip { background: #81c784; }
+        .color-maintenance { background: #ffb74d; }
+        .color-fuel { background: #f06292; }
+        .color-insurance { background: #ba68c8; }
+        .color-incident { background: #ef5350; }
+        .color-tracking { background: #26a69a; }
+        .color-delivery { background: #7986cb; }
+        
+        .diagram-container {
+            background: #ffffff;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            overflow-x: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        
+        .stat-label {
+            color: #a0a0a0;
+            margin-top: 5px;
+        }
+        
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            backdrop-filter: blur(10px);
+        }
+        
+        h2 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+        }
+        
+        h3 {
+            color: #4fc3f7;
+            margin: 20px 0 15px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        th {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            font-weight: 600;
+        }
+        
+        tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .entity-group {
+            margin: 25px 0;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            border-left: 4px solid #4fc3f7;
+        }
+        
+        .entity-group.trip { border-left-color: #81c784; }
+        .entity-group.maintenance { border-left-color: #ffb74d; }
+        .entity-group.fuel { border-left-color: #f06292; }
+        .entity-group.insurance { border-left-color: #ba68c8; }
+        .entity-group.incident { border-left-color: #ef5350; }
+        .entity-group.tracking { border-left-color: #26a69a; }
+        .entity-group.delivery { border-left-color: #7986cb; }
+        
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8rem; }
+            .container { padding: 10px; }
+            th, td { padding: 8px; font-size: 0.85rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚛 Fleet Management System</h1>
+            <p class="subtitle">Entity Relationship Diagram • Data Model Documentation</p>
+            <p class="subtitle" style="margin-top: 10px; color: #666;">Version 1.0 • December 4, 2025</p>
+        </header>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number">20</div>
+                <div class="stat-label">Entities</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">200+</div>
+                <div class="stat-label">Attributes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">25</div>
+                <div class="stat-label">Relationships</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">8</div>
+                <div class="stat-label">Entity Groups</div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item"><span class="legend-color color-core"></span> Core Entities</div>
+            <div class="legend-item"><span class="legend-color color-trip"></span> Trip Management</div>
+            <div class="legend-item"><span class="legend-color color-maintenance"></span> Maintenance</div>
+            <div class="legend-item"><span class="legend-color color-fuel"></span> Fuel Management</div>
+            <div class="legend-item"><span class="legend-color color-insurance"></span> Insurance & Docs</div>
+            <div class="legend-item"><span class="legend-color color-incident"></span> Incident Management</div>
+            <div class="legend-item"><span class="legend-color color-tracking"></span> GPS Tracking</div>
+            <div class="legend-item"><span class="legend-color color-delivery"></span> Delivery/Customer</div>
+        </div>
+
+        <div class="diagram-container">
+            <div class="mermaid">
+erDiagram
+    %% ===== CORE ENTITIES =====
+    
+    VEHICLE {
+        int vehicle_id PK
+        varchar vin UK
+        varchar license_plate UK
+        varchar make
+        varchar model
+        int year
+        varchar color
+        int vehicle_type_id FK
+        int depot_id FK
+        varchar status
+        date purchase_date
+        decimal current_odometer
+    }
+    
+    VEHICLE_TYPE {
+        int vehicle_type_id PK
+        varchar type_name
+        varchar category
+        int seating_capacity
+        decimal cargo_capacity_kg
+        varchar fuel_type
+    }
+    
+    DRIVER {
+        int driver_id PK
+        varchar employee_id UK
+        varchar first_name
+        varchar last_name
+        varchar email UK
+        varchar license_number UK
+        varchar license_class
+        date license_expiry
+        varchar status
+        int depot_id FK
+    }
+    
+    DEPOT {
+        int depot_id PK
+        varchar depot_name
+        varchar address_line1
+        varchar city
+        varchar state
+        varchar country
+        decimal latitude
+        decimal longitude
+        int capacity
+        varchar status
+    }
+    
+    %% ===== TRIP MANAGEMENT =====
+    
+    TRIP {
+        int trip_id PK
+        int vehicle_id FK
+        int driver_id FK
+        int route_id FK
+        datetime scheduled_start
+        datetime actual_start
+        decimal start_odometer
+        decimal end_odometer
+        varchar trip_type
+        varchar status
+    }
+    
+    ROUTE {
+        int route_id PK
+        varchar route_name
+        varchar start_point
+        varchar end_point
+        decimal distance_km
+        int estimated_duration_min
+        varchar status
+    }
+    
+    TRIP_CHECKPOINT {
+        int checkpoint_id PK
+        int trip_id FK
+        varchar location_name
+        decimal latitude
+        decimal longitude
+        datetime planned_arrival
+        datetime actual_arrival
+        int sequence_order
+    }
+    
+    %% ===== MAINTENANCE =====
+    
+    MAINTENANCE_RECORD {
+        int maintenance_id PK
+        int vehicle_id FK
+        int service_provider_id FK
+        varchar maintenance_type
+        date service_date
+        decimal odometer_reading
+        decimal total_cost
+        varchar status
+    }
+    
+    MAINTENANCE_ITEM {
+        int item_id PK
+        int maintenance_id FK
+        varchar item_name
+        varchar part_number
+        int quantity
+        decimal total_cost
+    }
+    
+    SERVICE_PROVIDER {
+        int service_provider_id PK
+        varchar provider_name
+        varchar contact_name
+        varchar phone
+        varchar specialization
+        varchar status
+    }
+    
+    %% ===== FUEL MANAGEMENT =====
+    
+    FUEL_LOG {
+        int fuel_log_id PK
+        int vehicle_id FK
+        int driver_id FK
+        datetime fill_date
+        decimal odometer_reading
+        decimal quantity_liters
+        decimal total_cost
+        varchar fuel_type
+    }
+    
+    FUEL_CARD {
+        int fuel_card_id PK
+        varchar card_number UK
+        int vehicle_id FK
+        int driver_id FK
+        date expiry_date
+        decimal monthly_limit
+        varchar status
+    }
+    
+    %% ===== INSURANCE & DOCUMENTS =====
+    
+    INSURANCE {
+        int insurance_id PK
+        int vehicle_id FK
+        varchar policy_number UK
+        varchar insurance_company
+        varchar coverage_type
+        date start_date
+        date end_date
+        decimal premium_amount
+        varchar status
+    }
+    
+    DOCUMENT {
+        int document_id PK
+        varchar document_type
+        int vehicle_id FK
+        int driver_id FK
+        varchar document_number
+        date expiry_date
+        varchar status
+    }
+    
+    %% ===== INCIDENT MANAGEMENT =====
+    
+    INCIDENT {
+        int incident_id PK
+        int vehicle_id FK
+        int driver_id FK
+        int trip_id FK
+        datetime incident_datetime
+        varchar incident_type
+        varchar severity
+        decimal damage_estimate
+        varchar status
+    }
+    
+    INCIDENT_PARTY {
+        int party_id PK
+        int incident_id FK
+        varchar party_type
+        varchar name
+        varchar contact_phone
+    }
+    
+    %% ===== DRIVER ASSIGNMENT =====
+    
+    DRIVER_VEHICLE_ASSIGNMENT {
+        int assignment_id PK
+        int driver_id FK
+        int vehicle_id FK
+        date start_date
+        date end_date
+        varchar assignment_type
+        varchar status
+    }
+    
+    %% ===== INSPECTION =====
+    
+    VEHICLE_INSPECTION {
+        int inspection_id PK
+        int vehicle_id FK
+        int driver_id FK
+        datetime inspection_date
+        varchar inspection_type
+        varchar overall_condition
+        varchar status
+    }
+    
+    %% ===== GPS TRACKING =====
+    
+    GPS_TRACKING {
+        bigint tracking_id PK
+        int vehicle_id FK
+        datetime timestamp
+        decimal latitude
+        decimal longitude
+        decimal speed_kmh
+        varchar event_type
+    }
+    
+    %% ===== CUSTOMER & DELIVERY =====
+    
+    CUSTOMER {
+        int customer_id PK
+        varchar customer_name
+        varchar contact_name
+        varchar email
+        varchar phone
+        varchar customer_type
+        varchar status
+    }
+    
+    DELIVERY {
+        int delivery_id PK
+        int trip_id FK
+        int customer_id FK
+        varchar delivery_address
+        datetime scheduled_time
+        datetime actual_time
+        varchar status
+    }
+    
+    %% ===== RELATIONSHIPS =====
+    
+    VEHICLE_TYPE ||--o{ VEHICLE : "categorizes"
+    DEPOT ||--o{ VEHICLE : "houses"
+    DEPOT ||--o{ DRIVER : "assigns"
+    
+    VEHICLE ||--o{ TRIP : "used_in"
+    DRIVER ||--o{ TRIP : "drives"
+    ROUTE ||--o{ TRIP : "follows"
+    TRIP ||--o{ TRIP_CHECKPOINT : "has"
+    
+    VEHICLE ||--o{ MAINTENANCE_RECORD : "receives"
+    SERVICE_PROVIDER ||--o{ MAINTENANCE_RECORD : "performs"
+    MAINTENANCE_RECORD ||--o{ MAINTENANCE_ITEM : "includes"
+    
+    VEHICLE ||--o{ FUEL_LOG : "consumes"
+    DRIVER ||--o{ FUEL_LOG : "fills"
+    VEHICLE ||--o| FUEL_CARD : "assigned"
+    DRIVER ||--o| FUEL_CARD : "holds"
+    
+    VEHICLE ||--o{ INSURANCE : "covered_by"
+    VEHICLE ||--o{ DOCUMENT : "has"
+    DRIVER ||--o{ DOCUMENT : "has"
+    
+    VEHICLE ||--o{ INCIDENT : "involved_in"
+    DRIVER ||--o{ INCIDENT : "involved_in"
+    TRIP ||--o{ INCIDENT : "occurs_during"
+    INCIDENT ||--o{ INCIDENT_PARTY : "involves"
+    
+    DRIVER ||--o{ DRIVER_VEHICLE_ASSIGNMENT : "assigned"
+    VEHICLE ||--o{ DRIVER_VEHICLE_ASSIGNMENT : "assigned_to"
+    
+    VEHICLE ||--o{ VEHICLE_INSPECTION : "inspected"
+    DRIVER ||--o{ VEHICLE_INSPECTION : "inspects"
+    
+    VEHICLE ||--o{ GPS_TRACKING : "tracked"
+    
+    TRIP ||--o{ DELIVERY : "includes"
+    CUSTOMER ||--o{ DELIVERY : "receives"
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📊 Entity Overview</h2>
+            
+            <div class="entity-group">
+                <h3>🚗 Core Entities</h3>
+                <table>
+                    <tr><th>Entity</th><th>Description</th><th>Key Attributes</th></tr>
+                    <tr><td><strong>VEHICLE</strong></td><td>Fleet vehicles (cars, trucks, vans)</td><td>VIN, License Plate, Make, Model, Status</td></tr>
+                    <tr><td><strong>VEHICLE_TYPE</strong></td><td>Vehicle categories and specifications</td><td>Type Name, Capacity, Fuel Type</td></tr>
+                    <tr><td><strong>DRIVER</strong></td><td>Licensed drivers in the fleet</td><td>License Number, Class, Status</td></tr>
+                    <tr><td><strong>DEPOT</strong></td><td>Physical locations/garages</td><td>Address, Coordinates, Capacity</td></tr>
+                </table>
+            </div>
+
+            <div class="entity-group trip">
+                <h3>🗺️ Trip Management</h3>
+                <table>
+                    <tr><th>Entity</th><th>Description</th><th>Key Attributes</th></tr>
+                    <tr><td><strong>TRIP</strong></td><td>Journey records from start to end</td><td>Vehicle, Driver, Start/End Times, Odometer</td></tr>
+                    <tr><td><strong>ROUTE</strong></td><td>Predefined travel routes</td><td>Start/End Points, Distance, Duration</td></tr>
+                    <tr><td><strong>TRIP_CHECKPOINT</strong></td><td>Waypoints during a trip</td><td>Location, Planned/Actual Arrival</td></tr>
+                </table>
+            </div>
+
+            <div class="entity-group maintenance">
+                <h3>🔧 Maintenance</h3>
+                <table>
+                    <tr><th>Entity</th><th>Description</th><th>Key Attributes</th></tr>
+                    <tr><td><strong>MAINTENANCE_RECORD</strong></td><td>Service and repair records</td><td>Type, Date, Odometer, Cost</td></tr>
+                    <tr><td><strong>MAINTENANCE_ITEM</strong></td><td>Parts and labor line items</td><td>Part Number, Quantity, Cost</td></tr>
+                    <tr><td><strong>SERVICE_PROVIDER</strong></td><td>Mechanics and service centers</td><td>Name, Specialization, Rating</td></tr>
+                </table>
+            </div>
+
+            <div class="entity-group fuel">
+                <h3>⛽ Fuel Management</h3>
+                <table>
+                    <tr><th>Entity</th><th>Description</th><th>Key Attributes</th></tr>
+                    <tr><td><strong>FUEL_LOG</strong></td><td>Fuel purchase/consumption records</td><td>Quantity, Price, Odometer, Station</td></tr>
+                    <tr><td><strong>FUEL_CARD</strong></td><td>Fleet fuel cards</td><td>Card Number, Limit, Expiry</td></tr>
+                </table>
+            </div>
+
+            <div class="entity-group insurance">
+                <h3>📄 Insurance & Documents</h3>
+                <table>
+                    <tr><th>Entity</th><th>Description</th><th>Key Attributes</th></tr>
+                    <tr><td><strong>INSURANCE</strong></td><td>Vehicle insurance policies</td><td>Policy Number, Coverage, Premium</td></tr>
+                    <tr><td><strong>DOCUMENT</strong></td><td>Licenses, registrations, permits</td><td>Document Type, Number, Expiry</td></tr>
+                </table>
+            </div>
+
+            <div class="entity-group incident">
+                <h3>⚠️ Incident Management</h3>
+                <table>
+                    <tr><th>Entity</th><th>Description</th><th>Key Attributes</th></tr>
+                    <tr><td><strong>INCIDENT</strong></td><td>Accidents, breakdowns, incidents</td><td>Type, Severity, Location, Damage</td></tr>
+                    <tr><td><strong>INCIDENT_PARTY</strong></td><td>Third parties involved in incidents</td><td>Party Type, Contact Info</td></tr>
+                </table>
+            </div>
+
+            <div class="entity-group tracking">
+                <h3>📍 Tracking & Inspection</h3>
+                <table>
+                    <tr><th>Entity</th><th>Description</th><th>Key Attributes</th></tr>
+                    <tr><td><strong>GPS_TRACKING</strong></td><td>Real-time vehicle location data</td><td>Coordinates, Speed, Timestamp</td></tr>
+                    <tr><td><strong>VEHICLE_INSPECTION</strong></td><td>Pre/post-trip vehicle inspections</td><td>Inspection Type, Condition, Defects</td></tr>
+                    <tr><td><strong>DRIVER_VEHICLE_ASSIGNMENT</strong></td><td>Driver-vehicle assignment history</td><td>Start/End Date, Assignment Type</td></tr>
+                </table>
+            </div>
+
+            <div class="entity-group delivery">
+                <h3>📦 Customer & Delivery</h3>
+                <table>
+                    <tr><th>Entity</th><th>Description</th><th>Key Attributes</th></tr>
+                    <tr><td><strong>CUSTOMER</strong></td><td>Customers for delivery operations</td><td>Name, Contact, Address</td></tr>
+                    <tr><td><strong>DELIVERY</strong></td><td>Delivery orders and tracking</td><td>Address, Scheduled/Actual Time, Status</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔗 Relationship Summary</h2>
+            <table>
+                <tr><th>Parent</th><th>Child</th><th>Type</th><th>Description</th></tr>
+                <tr><td>VEHICLE_TYPE</td><td>VEHICLE</td><td>1:N</td><td>A type categorizes many vehicles</td></tr>
+                <tr><td>DEPOT</td><td>VEHICLE</td><td>1:N</td><td>A depot houses many vehicles</td></tr>
+                <tr><td>DEPOT</td><td>DRIVER</td><td>1:N</td><td>A depot has many drivers</td></tr>
+                <tr><td>VEHICLE</td><td>TRIP</td><td>1:N</td><td>A vehicle is used in many trips</td></tr>
+                <tr><td>DRIVER</td><td>TRIP</td><td>1:N</td><td>A driver drives many trips</td></tr>
+                <tr><td>ROUTE</td><td>TRIP</td><td>1:N</td><td>A route is used by many trips</td></tr>
+                <tr><td>TRIP</td><td>TRIP_CHECKPOINT</td><td>1:N</td><td>A trip has many checkpoints</td></tr>
+                <tr><td>VEHICLE</td><td>MAINTENANCE_RECORD</td><td>1:N</td><td>A vehicle has many maintenance records</td></tr>
+                <tr><td>VEHICLE</td><td>FUEL_LOG</td><td>1:N</td><td>A vehicle has many fuel logs</td></tr>
+                <tr><td>VEHICLE</td><td>INSURANCE</td><td>1:N</td><td>A vehicle has many insurance policies</td></tr>
+                <tr><td>VEHICLE</td><td>INCIDENT</td><td>1:N</td><td>A vehicle is involved in many incidents</td></tr>
+                <tr><td>VEHICLE</td><td>GPS_TRACKING</td><td>1:N</td><td>A vehicle has many GPS records</td></tr>
+                <tr><td>TRIP</td><td>DELIVERY</td><td>1:N</td><td>A trip includes many deliveries</td></tr>
+                <tr><td>CUSTOMER</td><td>DELIVERY</td><td>1:N</td><td>A customer receives many deliveries</td></tr>
+            </table>
+        </div>
+
+        <footer>
+            <p>Fleet Management System ER Diagram • Generated December 4, 2025</p>
+            <p style="margin-top: 10px;">📧 For questions, contact the Data Team</p>
+        </footer>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+            er: {
+                diagramPadding: 20,
+                layoutDirection: 'TB',
+                minEntityWidth: 100,
+                minEntityHeight: 75,
+                entityPadding: 15,
+                stroke: 'gray',
+                fill: 'honeydew',
+                fontSize: 12
+            }
+        });
+    </script>
+</body>
+</html>
