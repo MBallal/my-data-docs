@@ -1,0 +1,1752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 9: Multi-Valued Dimensions and Bridges | Star Schema Guide</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+Pro:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent-blue: #58a6ff;
+            --accent-cyan: #56d4dd;
+            --accent-green: #3fb950;
+            --accent-yellow: #d29922;
+            --accent-orange: #db6d28;
+            --accent-red: #f85149;
+            --accent-purple: #a371f7;
+            --accent-pink: #db61a2;
+            --border-color: #30363d;
+            --code-bg: #0d1117;
+            --gradient-start: #1a1f35;
+            --gradient-end: #0d1117;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        /* Animated background pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(88, 166, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(163, 113, 247, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(86, 212, 221, 0.05) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Header styles */
+        header {
+            background: linear-gradient(180deg, rgba(22, 27, 34, 0.98) 0%, rgba(13, 17, 23, 0.95) 100%);
+            border-bottom: 1px solid var(--border-color);
+            padding: 2rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(20px);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .header-top {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .chapter-badge {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .book-title {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 2.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            margin-top: 0.5rem;
+            font-weight: 300;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            left: 0;
+            top: 140px;
+            width: 280px;
+            height: calc(100vh - 140px);
+            background: rgba(22, 27, 34, 0.7);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid var(--border-color);
+            padding: 2rem 1.5rem;
+            overflow-y: auto;
+            z-index: 50;
+        }
+
+        nav h3 {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        nav ul {
+            list-style: none;
+        }
+
+        nav li {
+            margin-bottom: 0.5rem;
+        }
+
+        nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            display: block;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+            border-left: 2px solid transparent;
+        }
+
+        nav a:hover {
+            color: var(--accent-cyan);
+            background: rgba(88, 166, 255, 0.1);
+            border-left-color: var(--accent-cyan);
+        }
+
+        nav a.sub-item {
+            padding-left: 2rem;
+            font-size: 0.9rem;
+        }
+
+        /* Main content */
+        main {
+            margin-left: 280px;
+            max-width: 900px;
+            padding: 3rem 4rem;
+        }
+
+        section {
+            margin-bottom: 4rem;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 2rem;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--border-color);
+            position: relative;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-cyan), transparent);
+        }
+
+        h3 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.5rem;
+            color: var(--accent-cyan);
+            margin: 2.5rem 0 1rem;
+        }
+
+        h4 {
+            font-size: 1.2rem;
+            color: var(--accent-purple);
+            margin: 2rem 0 1rem;
+            font-weight: 600;
+        }
+
+        p {
+            margin-bottom: 1.25rem;
+            color: var(--text-secondary);
+        }
+
+        strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* Intro box */
+        .intro-box {
+            background: linear-gradient(135deg, rgba(88, 166, 255, 0.1), rgba(163, 113, 247, 0.1));
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .intro-box h2 {
+            border: none;
+            padding-bottom: 0;
+            margin-bottom: 1rem;
+        }
+
+        .intro-box h2::after {
+            display: none;
+        }
+
+        /* Key concept boxes */
+        .concept-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem 2rem;
+            margin: 1.5rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .concept-box::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(180deg, var(--accent-blue), var(--accent-purple));
+        }
+
+        .concept-box.warning::before {
+            background: linear-gradient(180deg, var(--accent-orange), var(--accent-red));
+        }
+
+        .concept-box.success::before {
+            background: linear-gradient(180deg, var(--accent-green), var(--accent-cyan));
+        }
+
+        .concept-box h4 {
+            margin-top: 0;
+            color: var(--accent-blue);
+        }
+
+        .concept-box.warning h4 {
+            color: var(--accent-orange);
+        }
+
+        .concept-box.success h4 {
+            color: var(--accent-green);
+        }
+
+        /* Tip boxes */
+        .tip {
+            background: linear-gradient(135deg, rgba(63, 185, 80, 0.1), rgba(86, 212, 221, 0.1));
+            border: 1px solid rgba(63, 185, 80, 0.3);
+            border-radius: 0.75rem;
+            padding: 1.25rem 1.5rem;
+            margin: 1.5rem 0;
+            position: relative;
+            padding-left: 3.5rem;
+        }
+
+        .tip::before {
+            content: '💡';
+            position: absolute;
+            left: 1.25rem;
+            top: 1.25rem;
+            font-size: 1.2rem;
+        }
+
+        .tip-title {
+            color: var(--accent-green);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Warning boxes */
+        .warning-box {
+            background: linear-gradient(135deg, rgba(219, 109, 40, 0.1), rgba(248, 81, 73, 0.1));
+            border: 1px solid rgba(219, 109, 40, 0.3);
+            border-radius: 0.75rem;
+            padding: 1.25rem 1.5rem;
+            margin: 1.5rem 0;
+            position: relative;
+            padding-left: 3.5rem;
+        }
+
+        .warning-box::before {
+            content: '⚠️';
+            position: absolute;
+            left: 1.25rem;
+            top: 1.25rem;
+            font-size: 1.2rem;
+        }
+
+        .warning-title {
+            color: var(--accent-orange);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Note boxes */
+        .note {
+            background: rgba(163, 113, 247, 0.1);
+            border: 1px solid rgba(163, 113, 247, 0.3);
+            border-radius: 0.75rem;
+            padding: 1.25rem 1.5rem;
+            margin: 1.5rem 0;
+            position: relative;
+            padding-left: 3.5rem;
+        }
+
+        .note::before {
+            content: '📝';
+            position: absolute;
+            left: 1.25rem;
+            top: 1.25rem;
+            font-size: 1.2rem;
+        }
+
+        .note-title {
+            color: var(--accent-purple);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Code blocks */
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        code {
+            font-family: 'Fira Code', monospace;
+            color: var(--accent-cyan);
+        }
+
+        pre code {
+            color: var(--text-secondary);
+        }
+
+        .sql-keyword {
+            color: var(--accent-purple);
+            font-weight: 500;
+        }
+
+        .sql-function {
+            color: var(--accent-blue);
+        }
+
+        .sql-table {
+            color: var(--accent-green);
+        }
+
+        .sql-column {
+            color: var(--accent-cyan);
+        }
+
+        .sql-value {
+            color: var(--accent-orange);
+        }
+
+        /* Diagrams */
+        .diagram {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin: 2rem 0;
+            overflow-x: auto;
+        }
+
+        .diagram-title {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+
+        .schema-diagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .table-box {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 0.5rem;
+            min-width: 180px;
+            text-align: left;
+        }
+
+        .table-box.fact-table {
+            border-color: var(--accent-blue);
+        }
+
+        .table-box.dim-table {
+            border-color: var(--accent-green);
+        }
+
+        .table-box.bridge-table {
+            border-color: var(--accent-purple);
+        }
+
+        .table-header {
+            background: rgba(88, 166, 255, 0.2);
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.95rem;
+        }
+
+        .table-box.dim-table .table-header {
+            background: rgba(63, 185, 80, 0.2);
+        }
+
+        .table-box.bridge-table .table-header {
+            background: rgba(163, 113, 247, 0.2);
+        }
+
+        .table-columns {
+            padding: 0.75rem 1rem;
+        }
+
+        .column-item {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            padding: 0.25rem 0;
+        }
+
+        .column-item.pk {
+            color: var(--accent-yellow);
+        }
+
+        .column-item.fk {
+            color: var(--accent-cyan);
+        }
+
+        .tables-row {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        .relationship-line {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+        }
+
+        /* Instance data tables */
+        .instance-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+        }
+
+        .instance-table th {
+            background: var(--bg-tertiary);
+            color: var(--accent-cyan);
+            padding: 0.75rem;
+            text-align: left;
+            border: 1px solid var(--border-color);
+            font-weight: 500;
+        }
+
+        .instance-table td {
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .instance-table tr:nth-child(even) td {
+            background: rgba(33, 38, 45, 0.5);
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 1rem 0 1.5rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        li {
+            margin-bottom: 0.75rem;
+        }
+
+        li::marker {
+            color: var(--accent-cyan);
+        }
+
+        /* Summary box */
+        .summary-box {
+            background: linear-gradient(135deg, rgba(86, 212, 221, 0.1), rgba(88, 166, 255, 0.1));
+            border: 2px solid rgba(86, 212, 221, 0.3);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .summary-box h3 {
+            margin-top: 0;
+            color: var(--accent-cyan);
+        }
+
+        .summary-box ul {
+            margin-bottom: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            nav {
+                display: none;
+            }
+            main {
+                margin-left: 0;
+                padding: 2rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            h2 {
+                font-size: 1.5rem;
+            }
+            main {
+                padding: 1.5rem;
+            }
+        }
+
+        /* Scroll to top */
+        .scroll-top {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 100;
+        }
+
+        .scroll-top.visible {
+            opacity: 1;
+        }
+
+        .scroll-top:hover {
+            transform: scale(1.1);
+        }
+
+        /* Comparison table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }
+
+        .comparison-table th {
+            background: var(--bg-tertiary);
+            padding: 1rem;
+            text-align: left;
+            border: 1px solid var(--border-color);
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
+
+        .comparison-table td {
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            vertical-align: top;
+        }
+
+        .comparison-table tr:nth-child(even) td {
+            background: rgba(33, 38, 45, 0.3);
+        }
+
+        .pro {
+            color: var(--accent-green);
+        }
+
+        .con {
+            color: var(--accent-red);
+        }
+
+        /* Flow diagram */
+        .flow-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin: 1.5rem 0;
+        }
+
+        .flow-box {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--accent-blue);
+            border-radius: 0.5rem;
+            padding: 1rem 1.5rem;
+            text-align: center;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .flow-arrow {
+            color: var(--accent-cyan);
+            font-size: 1.5rem;
+        }
+
+        /* Highlight box */
+        .highlight-box {
+            background: rgba(88, 166, 255, 0.1);
+            border-left: 4px solid var(--accent-blue);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
+
+        .quote-author {
+            color: var(--text-muted);
+            font-style: italic;
+            text-align: right;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="header-top">
+                <span class="chapter-badge">Chapter 9</span>
+                <span class="book-title">Star Schema: The Complete Reference</span>
+            </div>
+            <h1>Multi-Valued Dimensions and Bridges</h1>
+            <p class="subtitle">A Senior Architect's Guide for Junior Data Modelers</p>
+        </div>
+    </header>
+
+    <nav>
+        <h3>Contents</h3>
+        <ul>
+            <li><a href="#introduction">Introduction</a></li>
+            <li><a href="#standard-relationships">Standard One-to-Many Relationships</a></li>
+            <li><a href="#multi-valued-dimensions">Multi-Valued Dimensions</a></li>
+            <li><a href="#simplifying-relationship" class="sub-item">Simplifying the Relationship</a></li>
+            <li><a href="#bridge-table" class="sub-item">Using a Bridge Table</a></li>
+            <li><a href="#double-counting" class="sub-item">Bridges & Double-Counting</a></li>
+            <li><a href="#allocation-factor" class="sub-item">Adding Allocation Factor</a></li>
+            <li><a href="#primary-member" class="sub-item">Primary Member Approach</a></li>
+            <li><a href="#slow-changes" class="sub-item">Slow Changes</a></li>
+            <li><a href="#resolve-many-to-many" class="sub-item">Resolving Many-to-Many</a></li>
+            <li><a href="#multi-valued-attributes">Multi-Valued Attributes</a></li>
+            <li><a href="#simplifying-attributes" class="sub-item">Simplifying Attributes</a></li>
+            <li><a href="#attribute-bridge" class="sub-item">Using Attribute Bridge</a></li>
+            <li><a href="#attribute-double-counting" class="sub-item">Double-Counting</a></li>
+            <li><a href="#attribute-changes" class="sub-item">Impact of Changes</a></li>
+            <li><a href="#other-impacts" class="sub-item">Other Impacts</a></li>
+            <li><a href="#bridge-as-fact" class="sub-item">Bridge as Fact Table</a></li>
+            <li><a href="#summary">Summary</a></li>
+            <li><a href="#further-reading">Further Reading</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <!-- Introduction Section -->
+        <section id="introduction">
+            <div class="intro-box">
+                <h2>🎯 What You'll Learn</h2>
+                <p>In the real world, data relationships aren't always simple. Sometimes a fact needs to relate to <em>multiple</em> dimension values, or a dimension needs to store <em>multiple</em> values for a single attribute. This chapter teaches you how to handle these complex scenarios using <strong>bridge tables</strong>.</p>
+                <p>Think of bridge tables as a <strong>double-edged sword</strong>: they provide ultimate power and flexibility, but come with risks. The most significant risk is <strong>double-counting</strong> – producing inaccurate results if the schema is misused.</p>
+            </div>
+
+            <div class="warning-box">
+                <div class="warning-title">Why This Matters</div>
+                <p>Many organizations refuse to use bridge tables due to the risk of errors. However, dismissing them entirely may severely limit your analytic capabilities. Before making that decision, you must understand bridges fully.</p>
+            </div>
+
+            <h3>Two Main Challenges We'll Address</h3>
+            <ol>
+                <li><strong>Multi-valued dimensions:</strong> When a fact table row needs to reference <em>more than one</em> row in a dimension table</li>
+                <li><strong>Multi-valued attributes:</strong> When a dimension row needs to capture <em>multiple values</em> for a single attribute</li>
+            </ol>
+        </section>
+
+        <!-- Standard One-to-Many Relationships -->
+        <section id="standard-relationships">
+            <h2>Standard One-to-Many Relationships</h2>
+            
+            <p>Before we dive into complex scenarios, let's remind ourselves of the <strong>standard relationship pattern</strong> that has worked so well in star schemas.</p>
+
+            <div class="concept-box success">
+                <h4>The Golden Rule (Until Now)</h4>
+                <p>Every fact has been related to <strong>exactly one instance</strong> of each dimension. An order relates to exactly one product. A sale relates to exactly one customer. This creates the clean, powerful star configuration.</p>
+            </div>
+
+            <p>This relationship type is called <strong>one-to-many</strong> (also known as master-detail or parent-child):</p>
+            <ul>
+                <li>Each <strong>dimension row</strong> may be related to zero or more fact rows</li>
+                <li>Each <strong>fact row</strong> must be related to exactly one row in each dimension table</li>
+            </ul>
+
+            <div class="diagram">
+                <div class="diagram-title">Figure 9-1: Standard One-to-Many Relationships</div>
+                <div class="schema-diagram">
+                    <div class="tables-row">
+                        <div class="table-box dim-table">
+                            <div class="table-header">DAY</div>
+                            <div class="table-columns">
+                                <div class="column-item pk">day_key</div>
+                                <div class="column-item">date</div>
+                                <div class="column-item">...</div>
+                            </div>
+                        </div>
+                        <div class="table-box dim-table">
+                            <div class="table-header">PRODUCT</div>
+                            <div class="table-columns">
+                                <div class="column-item pk">product_key</div>
+                                <div class="column-item">product_name</div>
+                                <div class="column-item">brand_name</div>
+                                <div class="column-item">...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="relationship-line">↓ one-to-many ↓</div>
+                    <div class="table-box fact-table">
+                        <div class="table-header">ORDER_FACTS</div>
+                        <div class="table-columns">
+                            <div class="column-item fk">day_key</div>
+                            <div class="column-item fk">product_key</div>
+                            <div class="column-item fk">customer_key</div>
+                            <div class="column-item fk">salesrep_key</div>
+                            <div class="column-item">order_dollars</div>
+                            <div class="column-item">...</div>
+                        </div>
+                    </div>
+                    <div class="relationship-line">↑ one-to-many ↑</div>
+                    <div class="tables-row">
+                        <div class="table-box dim-table">
+                            <div class="table-header">CUSTOMER</div>
+                            <div class="table-columns">
+                                <div class="column-item pk">customer_key</div>
+                                <div class="column-item">customer_name</div>
+                                <div class="column-item">...</div>
+                            </div>
+                        </div>
+                        <div class="table-box dim-table">
+                            <div class="table-header">SALESREP</div>
+                            <div class="table-columns">
+                                <div class="column-item pk">salesrep_key</div>
+                                <div class="column-item">salesperson_name</div>
+                                <div class="column-item">region</div>
+                                <div class="column-item">...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Why One-to-Many Works So Well</h3>
+            <p>The standard query pattern relies heavily on this one-to-many relationship:</p>
+
+            <pre><code><span class="sql-keyword">SELECT</span> 
+  <span class="sql-table">product</span>.<span class="sql-column">brand_name</span>, 
+  <span class="sql-function">SUM</span>(<span class="sql-table">order_facts</span>.<span class="sql-column">order_dollars</span>) 
+<span class="sql-keyword">FROM</span> 
+  <span class="sql-table">product</span>, <span class="sql-table">order_facts</span> 
+<span class="sql-keyword">WHERE</span> 
+  <span class="sql-table">product</span>.<span class="sql-column">product_key</span> = <span class="sql-table">order_facts</span>.<span class="sql-column">product_key</span> 
+<span class="sql-keyword">GROUP BY</span> 
+  <span class="sql-table">product</span>.<span class="sql-column">brand_name</span></code></pre>
+
+            <p>This works perfectly because each order relates to <strong>one and only one</strong> brand_name.</p>
+
+            <div class="warning-box">
+                <div class="warning-title">The Challenge: What If Multiple Salespeople Collaborate?</div>
+                <p>But what happens when reality isn't so simple? What if <strong>more than one salesperson</strong> can collaborate on an order? The standard star schema can't handle this – the fact table can't hold multiple salesrep_keys!</p>
+            </div>
+        </section>
+
+        <!-- Multi-Valued Dimensions -->
+        <section id="multi-valued-dimensions">
+            <h2>Multi-Valued Dimensions</h2>
+
+            <p>A <strong>multi-valued dimension</strong> occurs when a single fact table row may need to relate to <em>multiple rows</em> in a dimension table. For example, multiple salespeople may collaborate on a single order.</p>
+
+            <div class="concept-box">
+                <h4>The Problem Illustrated</h4>
+                <p>In our order_facts example: Most orders have one salesperson. But <em>some orders have two, three, or any number of salespeople</em> working together. The standard foreign key approach breaks down because we can only store ONE salesrep_key in the fact table.</p>
+            </div>
+
+            <h3 id="simplifying-relationship">Option 1: Simplifying the Relationship</h3>
+
+            <p>The simplest approach is to <strong>decompose the many-to-many relationship</strong> into two or more one-to-many relationships using <strong>dimension roles</strong>.</p>
+
+            <div class="diagram">
+                <div class="diagram-title">Figure 9-3: Allowing for Two Salespeople Using Roles</div>
+                <div class="schema-diagram">
+                    <div class="tables-row">
+                        <div class="table-box dim-table">
+                            <div class="table-header">PRIMARY_SALESREP</div>
+                            <div class="table-columns">
+                                <div class="column-item pk">salesrep_key</div>
+                                <div class="column-item">salesperson_name</div>
+                                <div class="column-item" style="color: var(--accent-purple); font-style: italic;">Role: Primary Salesperson</div>
+                                <div class="column-item" style="color: var(--accent-purple); font-style: italic;">Alias for: SALESREP</div>
+                            </div>
+                        </div>
+                        <div class="table-box dim-table">
+                            <div class="table-header">SECONDARY_SALESREP</div>
+                            <div class="table-columns">
+                                <div class="column-item pk">salesrep_key</div>
+                                <div class="column-item">salesperson_name</div>
+                                <div class="column-item" style="color: var(--accent-purple); font-style: italic;">Role: Secondary Salesperson</div>
+                                <div class="column-item" style="color: var(--accent-purple); font-style: italic;">Alias for: SALESREP</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="relationship-line">↓ ↓</div>
+                    <div class="table-box fact-table">
+                        <div class="table-header">ORDER_FACTS</div>
+                        <div class="table-columns">
+                            <div class="column-item fk">day_key</div>
+                            <div class="column-item fk">product_key</div>
+                            <div class="column-item fk">customer_key</div>
+                            <div class="column-item fk" style="color: var(--accent-yellow);">primary_salesrep_key</div>
+                            <div class="column-item fk" style="color: var(--accent-yellow);">secondary_salesrep_key</div>
+                            <div class="column-item">order_dollars</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h4>Limitations of the Simplified Approach</h4>
+            <table class="comparison-table">
+                <tr>
+                    <th>Problem</th>
+                    <th>Impact</th>
+                </tr>
+                <tr>
+                    <td><span class="con">Fixed Number of Relationships</span></td>
+                    <td>If you design for 2 salespeople, what happens when 3 collaborate? You'll eventually hit a limit.</td>
+                </tr>
+                <tr>
+                    <td><span class="con">Reporting Complications</span></td>
+                    <td>A simple question like "What are the total order_dollars for Ann?" becomes complex. Ann might be the primary <em>or</em> secondary salesperson!</td>
+                </tr>
+                <tr>
+                    <td><span class="con">Grouping Challenges</span></td>
+                    <td>Grouping facts by salesperson is difficult because the same salesperson could appear in different columns.</td>
+                </tr>
+            </table>
+
+            <div class="tip">
+                <div class="tip-title">When Simplification Works</div>
+                <p>This approach may be acceptable if: (1) collaboration is rare, (2) you can limit to a fixed number of participants, and (3) most reporting focuses on the primary role. Skilled analysts can handle occasional complex reports.</p>
+            </div>
+
+            <h3 id="bridge-table">Option 2: Using a Bridge Table</h3>
+
+            <p>A <strong>bridge table</strong> sits between the fact table and the dimension table, allowing <em>any number</em> of relationships. This is the powerful (but dangerous) solution.</p>
+
+            <div class="concept-box success">
+                <h4>How a Bridge Table Works</h4>
+                <ol>
+                    <li>Create a <strong>group table</strong> (the bridge) with a <code>group_key</code> and a foreign key to the dimension</li>
+                    <li>For each group of collaborators, add <strong>one row per member</strong>, all sharing the same <code>group_key</code></li>
+                    <li>The fact table references the <code>group_key</code> instead of the dimension directly</li>
+                    <li>Join fact → bridge → dimension to access the dimension attributes</li>
+                </ol>
+            </div>
+
+            <div class="diagram">
+                <div class="diagram-title">Figure 9-4: A Bridge Table Associates Any Number of Salespeople with an Order</div>
+                <div class="schema-diagram">
+                    <div class="tables-row">
+                        <div class="table-box fact-table">
+                            <div class="table-header">ORDER_FACTS</div>
+                            <div class="table-columns">
+                                <div class="column-item fk">day_key</div>
+                                <div class="column-item fk">product_key</div>
+                                <div class="column-item fk">customer_key</div>
+                                <div class="column-item fk" style="color: var(--accent-yellow);">sales_group_key</div>
+                                <div class="column-item">order_dollars</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="table-box bridge-table">
+                            <div class="table-header">SALES_GROUP (Bridge)</div>
+                            <div class="table-columns">
+                                <div class="column-item fk">sales_group_key</div>
+                                <div class="column-item fk">salesrep_key</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="table-box dim-table">
+                            <div class="table-header">SALESREP</div>
+                            <div class="table-columns">
+                                <div class="column-item pk">salesrep_key</div>
+                                <div class="column-item">salesperson_name</div>
+                                <div class="column-item">region</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h4>Example: Ann and Henry Collaborate on a Sale</h4>
+            <p>Let's see how the data looks when salespeople Ann (key: 222) and Henry (key: 333) work together on a $1,000 order:</p>
+
+            <div class="tables-row" style="margin: 2rem 0;">
+                <div style="flex: 1; margin-right: 1rem;">
+                    <p><strong>ORDER_FACTS</strong></p>
+                    <table class="instance-table">
+                        <tr>
+                            <th>day_key</th>
+                            <th>product_key</th>
+                            <th>customer_key</th>
+                            <th>sales_group_key</th>
+                            <th>order_dollars</th>
+                        </tr>
+                        <tr>
+                            <td>2012</td>
+                            <td>3721</td>
+                            <td>4791</td>
+                            <td style="color: var(--accent-yellow);">1</td>
+                            <td>1,000</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tables-row" style="margin: 2rem 0;">
+                <div style="flex: 1; margin-right: 1rem;">
+                    <p><strong>SALES_GROUP (Bridge Table)</strong></p>
+                    <table class="instance-table">
+                        <tr>
+                            <th>sales_group_key</th>
+                            <th>salesrep_key</th>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--accent-yellow);">1</td>
+                            <td>222</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--accent-yellow);">1</td>
+                            <td>333</td>
+                        </tr>
+                    </table>
+                </div>
+                <div style="flex: 1;">
+                    <p><strong>SALESREP</strong></p>
+                    <table class="instance-table">
+                        <tr>
+                            <th>salesrep_key</th>
+                            <th>salesperson_name</th>
+                            <th>region</th>
+                        </tr>
+                        <tr>
+                            <td>222</td>
+                            <td>Ann Davis</td>
+                            <td>East</td>
+                        </tr>
+                        <tr>
+                            <td>333</td>
+                            <td>Henry Perez</td>
+                            <td>East</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tip">
+                <div class="tip-title">Key Insight</div>
+                <p>The bridge table can accommodate groups of <strong>any size</strong>. If 15 salespeople collaborate, you simply add 15 rows with the same group_key. Even solo sales need a group – it just has one row!</p>
+            </div>
+
+            <h3 id="double-counting">⚠️ Bridges and Double-Counting</h3>
+
+            <p>Here's the dangerous part. Because a fact can now relate to <strong>multiple dimension rows</strong>, you risk counting the same fact multiple times!</p>
+
+            <div class="warning-box">
+                <div class="warning-title">The Double-Counting Danger</div>
+                <p>Ann and Henry's $1,000 order is associated with <strong>both</strong> of them. If you query orders by region, that same $1,000 will be counted <em>twice</em> – once for Ann, once for Henry. If three people collaborated, it would be triple-counted!</p>
+            </div>
+
+            <h4>When Double-Counting Is Actually Wanted</h4>
+            <p>Sometimes, you <em>want</em> this behavior! This is called an <strong>impact report</strong>:</p>
+
+            <div class="concept-box success">
+                <h4>Impact Report Use Case</h4>
+                <p>"Show me total order_dollars by salesperson" – Here, we <em>want</em> Ann and Henry's joint order counted for both. It shows the sales volume each person was <em>involved</em> in.</p>
+                <p>Other examples: total claim dollars by party, total office visits per diagnosis.</p>
+            </div>
+
+            <p>However, it's a <strong>serious error</strong> to take that report and produce a grand total. Ann's $1,000 + Henry's $1,000 ≠ $2,000 in actual orders!</p>
+
+            <pre><code><span class="sql-keyword">SELECT</span> 
+  <span class="sql-table">salesrep</span>.<span class="sql-column">region</span>, 
+  <span class="sql-function">SUM</span>(<span class="sql-table">order_facts</span>.<span class="sql-column">order_dollars</span>) 
+<span class="sql-keyword">FROM</span> 
+  <span class="sql-table">salesrep</span>, <span class="sql-table">sales_group</span>, <span class="sql-table">order_facts</span> 
+<span class="sql-keyword">WHERE</span> 
+  <span class="sql-table">order_facts</span>.<span class="sql-column">sales_group_key</span> = <span class="sql-table">sales_group</span>.<span class="sql-column">sales_group_key</span> <span class="sql-keyword">AND</span> 
+  <span class="sql-table">sales_group</span>.<span class="sql-column">salesrep_key</span> = <span class="sql-table">salesrep</span>.<span class="sql-column">salesrep_key</span> 
+<span class="sql-keyword">GROUP BY</span> 
+  <span class="sql-table">salesrep</span>.<span class="sql-column">region</span></code></pre>
+
+            <p>This query groups by <code>region</code>, not individual salespeople. Since Ann and Henry are both in "East," their joint order gets counted twice for the East region! ❌</p>
+
+            <div class="tip">
+                <div class="tip-title">Safe Impact Reports</div>
+                <p>The only safe way to construct an impact report is to group by a column that has a <strong>unique value for each group member</strong> – usually the natural key or salesperson_name.</p>
+            </div>
+
+            <h3 id="allocation-factor">Solution 1: Adding an Allocation Factor</h3>
+
+            <p>One way to eliminate double-counting is to add an <strong>allocation factor</strong> to the bridge table. This indicates what percentage of the fact should be credited to each group member.</p>
+
+            <div class="diagram">
+                <div class="diagram-title">Figure 9-5: Allocation Factor in Bridge Table</div>
+                <div class="schema-diagram">
+                    <div class="table-box bridge-table" style="min-width: 250px;">
+                        <div class="table-header">SALES_GROUP (with Allocation)</div>
+                        <div class="table-columns">
+                            <div class="column-item">sales_group_key</div>
+                            <div class="column-item">salesrep_key</div>
+                            <div class="column-item" style="color: var(--accent-green);">allocation</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <table class="instance-table" style="max-width: 400px; margin: 1.5rem auto;">
+                <tr>
+                    <th>sales_group_key</th>
+                    <th>salesrep_key</th>
+                    <th>allocation</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>222 (Ann)</td>
+                    <td style="color: var(--accent-green);">0.75</td>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>333 (Henry)</td>
+                    <td style="color: var(--accent-green);">0.25</td>
+                </tr>
+            </table>
+
+            <pre><code><span class="sql-keyword">SELECT</span>
+  <span class="sql-column">salesperson_name</span>,
+  <span class="sql-function">SUM</span>(<span class="sql-column">order_dollars</span> * <span class="sql-column">allocation</span>) <span class="sql-keyword">AS</span> <span class="sql-column">allocated_dollars</span>
+<span class="sql-keyword">FROM</span> ...
+
+<span style="color: var(--text-muted);">-- Result:</span>
+<span style="color: var(--text-muted);">-- Ann Davis     750</span>
+<span style="color: var(--text-muted);">-- Henry Perez   250</span>
+<span style="color: var(--text-muted);">-- Grand Total: 1,000 ✓</span></code></pre>
+
+            <div class="warning-box">
+                <div class="warning-title">Allocation Challenges</div>
+                <ul>
+                    <li><strong>Often no allocation rule exists</strong> – How do you allocate a healthcare charge across multiple diagnoses?</li>
+                    <li><strong>Must be business-approved</strong> – Technical teams shouldn't invent allocation rules</li>
+                    <li><strong>Some facts can't be allocated</strong> – If Ann and Henry sold ONE refrigerator, allocating gives Ann 0.75 refrigerators! 🤔</li>
+                </ul>
+            </div>
+
+            <h3 id="primary-member">Solution 2: Primary Member + Hidden Bridge</h3>
+
+            <p>A more practical solution is to <strong>supplement</strong> the bridge with a <strong>direct relationship</strong> to a "primary" dimension member.</p>
+
+            <div class="diagram">
+                <div class="diagram-title">Figure 9-6: Primary Group Member for Simplified Analysis</div>
+                <div class="schema-diagram">
+                    <div class="table-box fact-table" style="min-width: 280px;">
+                        <div class="table-header">ORDER_FACTS</div>
+                        <div class="table-columns">
+                            <div class="column-item fk">day_key</div>
+                            <div class="column-item fk">product_key</div>
+                            <div class="column-item fk">customer_key</div>
+                            <div class="column-item fk" style="color: var(--accent-purple);">sales_group_key</div>
+                            <div class="column-item fk" style="color: var(--accent-green);">primary_salesrep_key</div>
+                            <div class="column-item">order_dollars</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin: 1.5rem 0; text-align: center;">
+                    <div style="display: inline-block; margin: 0 1rem;">
+                        <span style="color: var(--accent-green);">● primary_salesrep_key</span><br>
+                        <small style="color: var(--text-muted);">For simplified analysis (no double-counting)</small>
+                    </div>
+                    <div style="display: inline-block; margin: 0 1rem;">
+                        <span style="color: var(--accent-purple);">● sales_group_key</span><br>
+                        <small style="color: var(--text-muted);">For full analysis (requires trained analysts)</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="concept-box success">
+                <h4>Best of Both Worlds</h4>
+                <ul>
+                    <li><strong>End users</strong> only see the primary_salesrep_key – safe, simple reporting</li>
+                    <li><strong>Trained analysts</strong> can access the bridge table for impact reports when needed</li>
+                    <li>The bridge tables are <strong>hidden</strong> from inexperienced users</li>
+                </ul>
+            </div>
+
+            <h3 id="slow-changes">Slow Changes with Bridges</h3>
+
+            <p>As with any snowflaked design, bridges require careful attention to <strong>slowly changing dimensions</strong>.</p>
+
+            <table class="comparison-table">
+                <tr>
+                    <th>Change Type</th>
+                    <th>What Happens</th>
+                </tr>
+                <tr>
+                    <td><strong>Type 1 Change</strong> (overwrite)</td>
+                    <td>If Ann's attributes are updated, she remains in her existing groups. No action needed on the bridge. ✓</td>
+                </tr>
+                <tr>
+                    <td><strong>Type 2 Change</strong> (add new row)</td>
+                    <td>A new surrogate key is created for Ann. The <em>next time</em> Ann and Henry collaborate, a <strong>new group must be created</strong>.</td>
+                </tr>
+                <tr>
+                    <td><strong>Group Membership Changes</strong></td>
+                    <td>If Henry leaves the team and two new people join:<br>
+                    • Type 1: Delete Henry's row, add two new rows<br>
+                    • Type 2: Create an entirely new group with the new membership</td>
+                </tr>
+            </table>
+
+            <div class="note">
+                <div class="note-title">When Groups Are Entities</div>
+                <p>If the groups themselves are trackable entities (like "Eastern Special Project Team"), they can have their own attributes and slow change history. You might even consider making the group a dimension table with multi-valued <em>attributes</em> for members. See the Multi-Valued Attributes section!</p>
+            </div>
+
+            <h3 id="resolve-many-to-many">Resolving the Many-to-Many Relationship</h3>
+
+            <p>The bridge table creates a <strong>many-to-many relationship</strong> with the fact table. Some tools (database modeling tools, BI software) don't support this.</p>
+
+            <div class="diagram">
+                <div class="diagram-title">Figure 9-7: Resolving the Many-to-Many with an Intersect Table</div>
+                <div class="schema-diagram">
+                    <div class="tables-row">
+                        <div class="table-box fact-table">
+                            <div class="table-header">ORDER_FACTS</div>
+                            <div class="table-columns">
+                                <div class="column-item">...</div>
+                                <div class="column-item fk">sales_group_key</div>
+                                <div class="column-item">order_dollars</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="table-box bridge-table">
+                            <div class="table-header">SALES_GROUP</div>
+                            <div class="table-columns">
+                                <div class="column-item pk" style="color: var(--accent-yellow);">sales_group_key</div>
+                                <div class="column-item" style="color: var(--text-muted); font-style: italic;">(This table has only one column!)</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="table-box bridge-table">
+                            <div class="table-header">GROUP_MEMBERSHIP</div>
+                            <div class="table-columns">
+                                <div class="column-item fk">sales_group_key</div>
+                                <div class="column-item fk">salesrep_key</div>
+                                <div class="column-item">allocation</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="table-box dim-table">
+                            <div class="table-header">SALESREP</div>
+                            <div class="table-columns">
+                                <div class="column-item pk">salesrep_key</div>
+                                <div class="column-item">salesperson_name</div>
+                                <div class="column-item">region</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p>Yes, the <code>SALES_GROUP</code> table looks silly – it's just a list of group key values! But this satisfies tools that require every foreign key to reference a primary key.</p>
+
+            <div class="tip">
+                <div class="tip-title">The Silly But Necessary Table</div>
+                <p>The sales_group table is entirely redundant – all information is in group_membership. But if your software demands resolved relationships, this works!</p>
+            </div>
+        </section>
+
+        <!-- Multi-Valued Attributes -->
+        <section id="multi-valued-attributes">
+            <h2>Multi-Valued Attributes</h2>
+
+            <p>We've covered when <em>facts</em> need to relate to multiple dimension rows. Now let's tackle when <em>dimension rows</em> need multiple values for an attribute.</p>
+
+            <div class="concept-box">
+                <h4>Common Examples of Multi-Valued Attributes</h4>
+                <ul>
+                    <li>Customers have <strong>multiple phone numbers</strong></li>
+                    <li>Bank accounts have <strong>multiple account holders</strong></li>
+                    <li>Students have <strong>multiple guardians</strong></li>
+                    <li>Patients have <strong>multiple medical conditions</strong></li>
+                    <li>Companies operate in <strong>multiple industries</strong></li>
+                </ul>
+            </div>
+
+            <div class="diagram">
+                <div class="diagram-title">Figure 9-8: Company C Operates in Multiple Industries</div>
+                <div class="schema-diagram">
+                    <div class="table-box dim-table" style="min-width: 300px;">
+                        <div class="table-header">CUSTOMER</div>
+                        <div class="table-columns">
+                            <div class="column-item pk">customer_key</div>
+                            <div class="column-item">customer_id</div>
+                            <div class="column-item">customer_name</div>
+                            <div class="column-item" style="color: var(--accent-red);">customer_industry ← ?</div>
+                        </div>
+                    </div>
+                    <table class="instance-table" style="margin-top: 1rem; max-width: 300px;">
+                        <tr>
+                            <th>Customer</th>
+                            <th>Industry</th>
+                        </tr>
+                        <tr>
+                            <td>Company A</td>
+                            <td>Manufacturing</td>
+                        </tr>
+                        <tr>
+                            <td>Company B</td>
+                            <td>Services</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--accent-yellow);">Company C</td>
+                            <td style="color: var(--accent-yellow);">Manufacturing, Services</td>
+                        </tr>
+                        <tr>
+                            <td>Company D</td>
+                            <td>Finance</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <h3 id="simplifying-attributes">Option 1: Simplifying (Flattening) the Attribute</h3>
+
+            <p>The first option is to create <strong>multiple columns</strong> for the repeating attribute – this is called "flattening."</p>
+
+            <div class="diagram">
+                <div class="diagram-title">Figure 9-9: Flattened Multi-Valued Industry Attribute</div>
+                <div class="schema-diagram">
+                    <div class="table-box dim-table" style="min-width: 220px;">
+                        <div class="table-header">CUSTOMER</div>
+                        <div class="table-columns">
+                            <div class="column-item pk">customer_key</div>
+                            <div class="column-item">customer_id</div>
+                            <div class="column-item">customer_name</div>
+                            <div class="column-item" style="color: var(--accent-orange);">industry_1</div>
+                            <div class="column-item" style="color: var(--accent-orange);">industry_2</div>
+                            <div class="column-item" style="color: var(--accent-orange);">industry_3</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h4>When Flattening Works Well</h4>
+            <p>This approach is best when:</p>
+            <ul>
+                <li>A <strong>limited number</strong> of values is acceptable</li>
+                <li>Each version has an <strong>easily identifiable role</strong> (home phone, office phone, mobile phone)</li>
+                <li>You <strong>won't need to filter or group</strong> by values that could appear in any column</li>
+            </ul>
+
+            <div class="warning-box">
+                <div class="warning-title">Shortcomings of Flattening for Industries</div>
+                <ul>
+                    <li><strong>Limited to fixed values</strong> – What if a customer needs 4 industries?</li>
+                    <li><strong>Complex filtering</strong> – Finding all "Manufacturing" customers requires checking industry_1, industry_2, AND industry_3</li>
+                    <li><strong>Grouping nightmare</strong> – Summarizing facts by industry is extremely difficult</li>
+                </ul>
+            </div>
+
+            <h3 id="attribute-bridge">Option 2: Using an Attribute Bridge</h3>
+
+            <p>Just like dimension bridges, an <strong>attribute bridge</strong> can model multi-valued attributes. The bridge sits between the dimension and an <strong>outrigger</strong>.</p>
+
+            <div class="concept-box success">
+                <h4>How an Attribute Bridge Works</h4>
+                <ol>
+                    <li>Place multi-valued attributes in a separate <strong>outrigger table</strong> with its own surrogate key</li>
+                    <li>Create a <strong>bridge table</strong> with a group_key and a reference to the outrigger</li>
+                    <li>When a dimension row has a specific combination of values, create a group in the bridge</li>
+                    <li>The dimension references the group_key; join dimension → bridge → outrigger</li>
+                </ol>
+            </div>
+
+            <div class="diagram">
+                <div class="diagram-title">Figure 9-10: An Attribute Bridge Table for Multiple Industries</div>
+                <div class="schema-diagram">
+                    <div class="tables-row">
+                        <div class="table-box fact-table">
+                            <div class="table-header">ORDER_FACTS</div>
+                            <div class="table-columns">
+                                <div class="column-item fk">day_key</div>
+                                <div class="column-item fk">customer_key</div>
+                                <div class="column-item fk">product_key</div>
+                                <div class="column-item fk">salesrep_key</div>
+                                <div class="column-item">order_dollars</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="table-box dim-table">
+                            <div class="table-header">CUSTOMER</div>
+                            <div class="table-columns">
+                                <div class="column-item pk">customer_key</div>
+                                <div class="column-item">customer_id</div>
+                                <div class="column-item">customer_name</div>
+                                <div class="column-item fk" style="color: var(--accent-purple);">industry_group_key</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="table-box bridge-table">
+                            <div class="table-header">INDUSTRY_GROUP (Bridge)</div>
+                            <div class="table-columns">
+                                <div class="column-item fk">industry_group_key</div>
+                                <div class="column-item fk">industry_key</div>
+                                <div class="column-item">primary_industry</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="table-box dim-table">
+                            <div class="table-header">INDUSTRY (Outrigger)</div>
+                            <div class="table-columns">
+                                <div class="column-item pk">industry_key</div>
+                                <div class="column-item">industry_code</div>
+                                <div class="column-item">industry_name</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h4>Instance Data Example</h4>
+            <p>Company C operates in Manufacturing and Services:</p>
+
+            <div class="tables-row" style="margin: 2rem 0; flex-wrap: wrap; gap: 1.5rem;">
+                <div style="flex: 1; min-width: 250px;">
+                    <p><strong>CUSTOMER</strong></p>
+                    <table class="instance-table">
+                        <tr>
+                            <th>customer_key</th>
+                            <th>customer_id</th>
+                            <th>customer_name</th>
+                            <th>industry_group_key</th>
+                        </tr>
+                        <tr>
+                            <td>2012</td>
+                            <td>C771</td>
+                            <td>Company C</td>
+                            <td style="color: var(--accent-yellow);">100</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tables-row" style="margin: 2rem 0; flex-wrap: wrap; gap: 1.5rem;">
+                <div style="flex: 1; min-width: 280px;">
+                    <p><strong>INDUSTRY_GROUP (Bridge)</strong></p>
+                    <table class="instance-table">
+                        <tr>
+                            <th>industry_group_key</th>
+                            <th>industry_key</th>
+                            <th>primary_industry</th>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--accent-yellow);">100</td>
+                            <td>901</td>
+                            <td style="color: var(--accent-green);">Primary</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--accent-yellow);">100</td>
+                            <td>902</td>
+                            <td>Not Primary</td>
+                        </tr>
+                    </table>
+                </div>
+                <div style="flex: 1; min-width: 280px;">
+                    <p><strong>INDUSTRY (Outrigger)</strong></p>
+                    <table class="instance-table">
+                        <tr>
+                            <th>industry_key</th>
+                            <th>industry_code</th>
+                            <th>industry_name</th>
+                        </tr>
+                        <tr>
+                            <td>901</td>
+                            <td>B404</td>
+                            <td>Manufacturing</td>
+                        </tr>
+                        <tr>
+                            <td>902</td>
+                            <td>B492</td>
+                            <td>Services</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <h3 id="attribute-double-counting">Double-Counting with Attribute Bridges</h3>
+
+            <p>The same double-counting risk exists! When you join fact → dimension → bridge → outrigger, facts get multiplied.</p>
+
+            <pre><code><span class="sql-keyword">SELECT</span> 
+  <span class="sql-table">customer</span>.<span class="sql-column">customer_name</span>, 
+  <span class="sql-table">industry</span>.<span class="sql-column">industry_name</span> 
+<span class="sql-keyword">FROM</span> 
+  <span class="sql-table">customer</span>, <span class="sql-table">industry_group</span>, <span class="sql-table">industry</span> 
+<span class="sql-keyword">WHERE</span> 
+  <span class="sql-table">customer</span>.<span class="sql-column">industry_group_key</span> = <span class="sql-table">industry_group</span>.<span class="sql-column">industry_group_key</span> <span class="sql-keyword">AND</span> 
+  <span class="sql-table">industry_group</span>.<span class="sql-column">industry_key</span> = <span class="sql-table">industry</span>.<span class="sql-column">industry_key</span>;
+
+<span style="color: var(--text-muted);">-- Result:</span>
+<span style="color: var(--text-muted);">-- Company C    Manufacturing</span>
+<span style="color: var(--text-muted);">-- Company C    Services</span></code></pre>
+
+            <p>Now add the fact table:</p>
+
+            <pre><code><span class="sql-keyword">SELECT</span> 
+  <span class="sql-table">customer</span>.<span class="sql-column">customer_name</span>, 
+  <span class="sql-table">industry</span>.<span class="sql-column">industry_name</span>, 
+  <span class="sql-function">SUM</span>(<span class="sql-column">order_dollars</span>) 
+<span class="sql-keyword">FROM</span> 
+  <span class="sql-table">order_facts</span>, <span class="sql-table">customer</span>, <span class="sql-table">industry_group</span>, <span class="sql-table">industry</span> 
+<span class="sql-keyword">WHERE</span> 
+  <span class="sql-table">order_facts</span>.<span class="sql-column">customer_key</span> = <span class="sql-table">customer</span>.<span class="sql-column">customer_key</span> <span class="sql-keyword">AND</span> 
+  <span class="sql-table">customer</span>.<span class="sql-column">industry_group_key</span> = <span class="sql-table">industry_group</span>.<span class="sql-column">industry_group_key</span> <span class="sql-keyword">AND</span> 
+  <span class="sql-table">industry_group</span>.<span class="sql-column">industry_key</span> = <span class="sql-table">industry</span>.<span class="sql-column">industry_key</span> 
+<span class="sql-keyword">GROUP BY</span> 
+  <span class="sql-column">customer_name</span>, <span class="sql-column">industry_name</span>
+
+<span style="color: var(--text-muted);">-- Result:</span>
+<span style="color: var(--text-muted);">-- Company C    Manufacturing    10,000</span>
+<span style="color: var(--text-muted);">-- Company C    Services         10,000  ← SAME ORDER COUNTED TWICE!</span></code></pre>
+
+            <h4>Using Primary Member to Hide the Bridge</h4>
+            <p>Notice the <code>primary_industry</code> flag in the bridge table. Filter by this flag to guarantee a single match per customer:</p>
+
+            <pre><code><span class="sql-keyword">WHERE</span> 
+  ... 
+  <span class="sql-keyword">AND</span> <span class="sql-table">industry_group</span>.<span class="sql-column">primary_industry</span> = <span class="sql-value">'Primary'</span></code></pre>
+
+            <div class="tip">
+                <div class="tip-title">Hide the Bridge</div>
+                <p>Create a view that only shows the primary industry. End users work with this safe view. Only trained analysts get full access to produce impact reports.</p>
+            </div>
+
+            <h3 id="attribute-changes">Impact of Changes</h3>
+
+            <p>Attribute bridges require careful attention to changes in source data. Type 2 changes create ripple effects!</p>
+
+            <h4>Changes to the Outrigger</h4>
+            <table class="comparison-table">
+                <tr>
+                    <th>Change Type</th>
+                    <th>What Happens</th>
+                </tr>
+                <tr>
+                    <td><strong>Type 1</strong></td>
+                    <td>Simply update the outrigger. No big deal. ✓</td>
+                </tr>
+                <tr>
+                    <td><strong>Type 2</strong></td>
+                    <td>If "Services" → "Financial Services":<br>
+                    • New row in outrigger with new key<br>
+                    • New version of Company C must be created<br>
+                    • New group in bridge for "Financial Services" + "Manufacturing"</td>
+                </tr>
+            </table>
+
+            <h4>Changes to Group Membership</h4>
+            <p>If Company C leaves "Services" and enters "Insurance":</p>
+            <ul>
+                <li><strong>Type 1:</strong> Update customer's industry_group_key to point to a new (or existing) group for "Manufacturing" + "Insurance"</li>
+                <li><strong>Type 2:</strong> Create new row in customer table with new surrogate key, pointing to the new group. Old facts stay linked to old industry mix!</li>
+            </ul>
+
+            <div class="tip">
+                <div class="tip-title">Key Insight</div>
+                <p>The group in the bridge/outrigger is a <em>characteristic</em> of the dimension. If the group changes, the thing the dimension represents has changed!</p>
+            </div>
+
+            <h4>Changes to the Dimension</h4>
+            <p>If Company C undergoes a Type 2 change (new surrogate key) but stays in the same industries, the new row can <strong>reuse the same group_key</strong>. The multi-valued attributes haven't changed!</p>
+
+            <h3 id="other-impacts">Other Impacts of Attribute Bridges</h3>
+
+            <h4>When the Outrigger IS a Group</h4>
+            <p>Things get confusing when the multi-valued attribute is itself a "group" (like employee committees, unions, etc.). The bridge then associates employees with groups they belong to.</p>
+
+            <div class="tip">
+                <div class="tip-title">Terminology Tip</div>
+                <p>When the outrigger represents real-world groups, don't use "group" to describe the bridge table. Call it an "association table" or "membership table" to avoid confusion!</p>
+            </div>
+
+            <h4>Folding the Outrigger into the Bridge</h4>
+            <p>If there are only one or two multi-valued attributes, you can eliminate the outrigger entirely by placing its columns directly in the bridge table. Industry_code and industry_name would appear in the industry_group table itself.</p>
+            <ul>
+                <li><span class="pro">Fewer tables and joins</span></li>
+                <li><span class="con">Industry names stored redundantly</span></li>
+                <li>Must ensure names are consistent across rows</li>
+            </ul>
+
+            <h4>Resolving the Many-to-Many (Again)</h4>
+            <p>Just like with dimension bridges, you may need to add a one-column group table to satisfy finicky tools:</p>
+
+            <div class="diagram">
+                <div class="diagram-title">Figure 9-11: Resolving the Attribute Bridge Many-to-Many</div>
+                <div class="schema-diagram">
+                    <div class="tables-row">
+                        <div class="table-box dim-table">
+                            <div class="table-header">CUSTOMER</div>
+                            <div class="table-columns">
+                                <div class="column-item pk">customer_key</div>
+                                <div class="column-item">customer_name</div>
+                                <div class="column-item fk">industry_group_key</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="table-box bridge-table">
+                            <div class="table-header">INDUSTRY_GROUP</div>
+                            <div class="table-columns">
+                                <div class="column-item pk">industry_group_key</div>
+                                <div class="column-item" style="color: var(--text-muted); font-style: italic;">(Only one column!)</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="table-box bridge-table">
+                            <div class="table-header">GROUP_MEMBERSHIP</div>
+                            <div class="table-columns">
+                                <div class="column-item fk">industry_group_key</div>
+                                <div class="column-item fk">industry_key</div>
+                                <div class="column-item">primary_industry</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="table-box dim-table">
+                            <div class="table-header">INDUSTRY</div>
+                            <div class="table-columns">
+                                <div class="column-item pk">industry_key</div>
+                                <div class="column-item">industry_code</div>
+                                <div class="column-item">industry_name</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 id="bridge-as-fact">Bridge as Fact Table</h3>
+
+            <p>Because bridge tables consist primarily of foreign keys, they strongly resemble <strong>fact tables</strong>. Many BI tools will identify them as such!</p>
+
+            <div class="concept-box">
+                <h4>Bridge ≈ Factless Fact Table</h4>
+                <p>A bridge contains multiple key references – just like a fact table. Any allocation factors or flags might be identified as degenerate dimensions. This is fine semantically, but has one important implication:</p>
+            </div>
+
+            <div class="warning-box">
+                <div class="warning-title">Exception to the "No Fact Table Joins" Rule</div>
+                <p>Earlier chapters warned: <strong>never join two fact tables</strong> – it causes Cartesian products and double-counting.</p>
+                <p>But bridge tables <em>exploit</em> this Cartesian effect intentionally! If your tool treats the bridge as a fact table, you must make an <strong>exception</strong> to the no-join rule. When one "fact table" is actually a bridge, the join is essential and the Cartesian product is intended.</p>
+            </div>
+
+            <div class="note">
+                <div class="note-title">Related Reading</div>
+                <p>Factless fact tables are fully explored in Chapter 12. The concept of a table that captures relationships between dimensions without containing measures is perfectly valid!</p>
+            </div>
+        </section>
+
+        <!-- Summary -->
+        <section id="summary">
+            <h2>Summary</h2>
+
+            <div class="summary-box">
+                <h3>Key Takeaways</h3>
+                <ul>
+                    <li><strong>Multi-valued dimensions</strong> occur when a fact must refer to more than one instance of a dimension. You can simplify into multiple one-to-many relationships, or use a bridge table.</li>
+                    
+                    <li><strong>Simplification</strong> works for a fixed number of relationships but makes some reporting difficult and doesn't scale.</li>
+                    
+                    <li><strong>Bridge tables</strong> allow facts to associate with any number of dimension rows, keeping reporting simple – but they introduce double-counting risk.</li>
+                    
+                    <li><strong>Control access carefully!</strong> Hide bridges from inexperienced users. Supplement with a primary member for safe, simplified analysis.</li>
+                    
+                    <li><strong>Allocation factors</strong> can prevent double-counting, but must be approved by business users and don't work for all fact types.</li>
+                    
+                    <li><strong>Many-to-many relationships</strong> can be resolved with an intersect table if your tools require it (even if it creates silly one-column tables).</li>
+                    
+                    <li><strong>Slow changes</strong> with bridges require careful planning. Type 2 changes create ripple effects across dimension rows, bridge tables, and groups.</li>
+                    
+                    <li><strong>Attribute bridges</strong> work the same way but sit between a dimension and an outrigger.</li>
+                    
+                    <li><strong>Tools may identify bridges as fact tables</strong> – that's fine, but make sure they don't inadvertently "drill across" when joining.</li>
+                </ul>
+            </div>
+
+            <div class="highlight-box">
+                <p><em>"The presence of a bridge makes it necessary to think carefully about the implications of slow changes, not only to attributes but also to relationships."</em></p>
+                <p class="quote-author">— Christopher Adamson</p>
+            </div>
+        </section>
+
+        <!-- Further Reading -->
+        <section id="further-reading">
+            <h2>Further Reading</h2>
+
+            <h3>Multi-Valued Dimensions</h3>
+            <ul>
+                <li><strong>Healthcare Example:</strong> Kimball and Ross describe using a bridge to associate billing facts with multiple diagnoses, including allocation factors. <em>The Data Warehouse Toolkit, Second Edition</em>, Chapter 13.</li>
+                <li><strong>Time-stamping Bridge Changes:</strong> The same healthcare example shows how to maintain history of group membership changes.</li>
+                <li><strong>Aggregates with Bridges:</strong> For guidance on summarizing within bridged dimensions, see <em>Mastering Data Warehouse Aggregates</em>, Chapter 8.</li>
+            </ul>
+
+            <h3>Multi-Valued Dimension Attributes</h3>
+            <ul>
+                <li><strong>Employee Skills:</strong> Kimball and Ross use a bridge to associate multiple skills with employees. <em>The Data Warehouse Toolkit</em>, Chapter 8.</li>
+                <li><strong>Concatenated Values:</strong> An alternative approach using substring functions, though limited for impact reports.</li>
+                <li><strong>Account Holders:</strong> Multiple account holders associated with an account dimension. <em>The Data Warehouse Toolkit</em>, Chapter 9.</li>
+            </ul>
+
+            <div class="note">
+                <div class="note-title">What's Next?</div>
+                <p>Chapter 10 explores <strong>Recursive Hierarchies and Bridges</strong> – using hierarchy bridges to represent recursive relationships among dimension members, allowing facts to be rolled up or down to any level in a ragged hierarchy.</p>
+            </div>
+        </section>
+
+        <footer style="text-align: center; padding: 3rem 0; color: var(--text-muted); border-top: 1px solid var(--border-color); margin-top: 4rem;">
+            <p>Based on <em>Star Schema: The Complete Reference</em> by Christopher Adamson</p>
+            <p>McGraw-Hill Osborne Media, 2010</p>
+            <p style="margin-top: 1rem; font-size: 0.9rem;">Manual prepared for Junior Data Modelers by Senior Data Architects</p>
+        </footer>
+    </main>
+
+    <button class="scroll-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">↑</button>
+
+    <script>
+        // Show/hide scroll to top button
+        window.addEventListener('scroll', () => {
+            const btn = document.querySelector('.scroll-top');
+            if (window.scrollY > 500) {
+                btn.classList.add('visible');
+            } else {
+                btn.classList.remove('visible');
+            }
+        });
+
+        // Highlight current section in nav
+        const sections = document.querySelectorAll('section');
+        const navLinks = document.querySelectorAll('nav a');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (scrollY >= sectionTop - 200) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.style.color = '';
+                link.style.background = '';
+                link.style.borderLeftColor = 'transparent';
+                if (link.getAttribute('href') === '#' + current) {
+                    link.style.color = 'var(--accent-cyan)';
+                    link.style.background = 'rgba(88, 166, 255, 0.1)';
+                    link.style.borderLeftColor = 'var(--accent-cyan)';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
