@@ -741,10 +741,84 @@
                 <li><strong>By business artifact:</strong> "One row per order line" or "One row per transaction"</li>
                 <li><strong>Dimensionally:</strong> "Orders by day, customer, product, and salesperson"</li>
             </ul>
+
+            <!-- EXAMPLE: Grain Definitions -->
+            <div class="example-box">
+                <h4>Example: Two Ways to Define Grain</h4>
+                <p>Consider an e-commerce order system. The same fact table can be described differently:</p>
+                
+                <table class="comparison-table" style="margin: 1rem 0;">
+                    <thead>
+                        <tr>
+                            <th>Approach</th>
+                            <th>Grain Statement</th>
+                            <th>What It Means</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>By Business Artifact</strong></td>
+                            <td>"One row per order line item"</td>
+                            <td>Each product in an order gets its own row</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Dimensionally</strong></td>
+                            <td>"Sales by date, customer, product, and store"</td>
+                            <td>Describes which dimensions make each row unique</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <p><strong>Sample Data:</strong> Order #1001 contains 3 items → creates 3 rows:</p>
+                <table class="data-table" style="margin: 1rem 0;">
+                    <thead>
+                        <tr><th>Order ID</th><th>Line</th><th>Date</th><th>Customer</th><th>Product</th><th>Quantity</th><th>Amount</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1001</td><td>1</td><td>2024-02-15</td><td>Alice</td><td>Laptop</td><td>1</td><td>$999.00</td></tr>
+                        <tr><td>1001</td><td>2</td><td>2024-02-15</td><td>Alice</td><td>Mouse</td><td>2</td><td>$50.00</td></tr>
+                        <tr><td>1001</td><td>3</td><td>2024-02-15</td><td>Alice</td><td>USB Cable</td><td>3</td><td>$15.00</td></tr>
+                    </tbody>
+                </table>
+            </div>
             
             <div class="warning-box">
                 <h4>Important Note</h4>
                 <p>Although the word "transaction" appears in its name, a transaction fact table's grain is <strong>not always the individual transaction</strong>. Many real-world fact tables summarize activities — combining multiple transactions into single rows when they share the same dimensional values.</p>
+            </div>
+
+            <!-- EXAMPLE: Summarized Grain -->
+            <div class="example-box">
+                <h4>Example: Summarized Grain vs. Atomic Grain</h4>
+                <p>A retail chain might choose different grains for different purposes:</p>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                    <div style="background: #f0f9ff; padding: 1rem; border-radius: 8px;">
+                        <h5 style="color: #1e40af; margin: 0 0 0.5rem 0;">Atomic Grain</h5>
+                        <p style="font-size: 0.85rem; margin: 0 0 0.5rem 0;">"One row per item scanned"</p>
+                        <table class="data-table" style="font-size: 0.75rem;">
+                            <thead><tr><th>Time</th><th>Product</th><th>$</th></tr></thead>
+                            <tbody>
+                                <tr><td>10:15:01</td><td>Milk</td><td>$3.99</td></tr>
+                                <tr><td>10:15:05</td><td>Bread</td><td>$2.50</td></tr>
+                                <tr><td>10:15:09</td><td>Eggs</td><td>$4.25</td></tr>
+                            </tbody>
+                        </table>
+                        <p style="font-size: 0.8rem; margin-top: 0.5rem; color: #64748b;">3 rows for 3 items</p>
+                    </div>
+                    <div style="background: #fef3c7; padding: 1rem; border-radius: 8px;">
+                        <h5 style="color: #92400e; margin: 0 0 0.5rem 0;">Summarized Grain</h5>
+                        <p style="font-size: 0.85rem; margin: 0 0 0.5rem 0;">"One row per product per day per store"</p>
+                        <table class="data-table" style="font-size: 0.75rem;">
+                            <thead><tr><th>Date</th><th>Store</th><th>Product</th><th>Qty</th><th>$</th></tr></thead>
+                            <tbody>
+                                <tr><td>Feb 15</td><td>Store A</td><td>Milk</td><td>145</td><td>$578</td></tr>
+                                <tr><td>Feb 15</td><td>Store A</td><td>Bread</td><td>89</td><td>$223</td></tr>
+                            </tbody>
+                        </table>
+                        <p style="font-size: 0.8rem; margin-top: 0.5rem; color: #64748b;">145 milk sales → 1 row</p>
+                    </div>
+                </div>
             </div>
 
             <h4>2. Transaction Fact Tables Are Sparse</h4>
@@ -758,6 +832,39 @@
             <h4>3. Transaction Fact Tables Contain Additive Facts</h4>
             <p>Transaction fact tables normally record <strong>fully additive facts</strong> — measurements that can be summed across all dimensions.</p>
 
+            <!-- EXAMPLE: Additivity -->
+            <div class="example-box">
+                <h4>Example: What Makes a Fact "Fully Additive"?</h4>
+                <p>A fact is <strong>fully additive</strong> if you can sum it meaningfully across ALL dimensions. Consider this sales data:</p>
+                
+                <table class="data-table" style="margin: 1rem 0;">
+                    <thead>
+                        <tr><th>Date</th><th>Store</th><th>Product</th><th>Qty Sold</th><th>Revenue</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Feb 1</td><td>NYC</td><td>Widget</td><td>10</td><td>$100</td></tr>
+                        <tr><td>Feb 1</td><td>NYC</td><td>Gadget</td><td>5</td><td>$75</td></tr>
+                        <tr><td>Feb 1</td><td>LA</td><td>Widget</td><td>8</td><td>$80</td></tr>
+                        <tr><td>Feb 2</td><td>NYC</td><td>Widget</td><td>12</td><td>$120</td></tr>
+                    </tbody>
+                </table>
+
+                <p><strong>✅ Fully Additive:</strong> Both <code>qty_sold</code> and <code>revenue</code> can be summed across any dimension:</p>
+
+                <div class="schema-display" style="margin: 1rem 0;">
+<span class="keyword">-- Sum across TIME: "Total revenue for Feb 1-2"</span>
+<span class="keyword">SELECT SUM</span>(revenue) <span class="keyword">FROM</span> <span class="table-name">sales</span>;  <span class="keyword">-- Result: $375 ✓</span>
+
+<span class="keyword">-- Sum across STORE: "Revenue by store"</span>
+<span class="keyword">SELECT</span> store, <span class="keyword">SUM</span>(revenue) <span class="keyword">FROM</span> <span class="table-name">sales</span> <span class="keyword">GROUP BY</span> store;
+<span class="keyword">-- NYC: $295, LA: $80 ✓</span>
+
+<span class="keyword">-- Sum across PRODUCT: "Revenue by product"</span>
+<span class="keyword">SELECT</span> product, <span class="keyword">SUM</span>(revenue) <span class="keyword">FROM</span> <span class="table-name">sales</span> <span class="keyword">GROUP BY</span> product;
+<span class="keyword">-- Widget: $300, Gadget: $75 ✓</span>
+                </div>
+            </div>
+
             <div class="tip-box">
                 <h4>Handling Non-Additive Facts</h4>
                 <p>Most nonadditive measurements, such as ratios, should be broken down into fully additive components. For example, instead of storing "margin rate" (10%), store the components:</p>
@@ -766,6 +873,44 @@
                     <li><code>order_dollars</code> — fully additive</li>
                 </ul>
                 <p>Then compute the ratio after aggregation: <strong>You want the ratio of the sums, not the sum of the ratios!</strong></p>
+            </div>
+
+            <!-- EXAMPLE: Why Not Store Ratios -->
+            <div class="example-box">
+                <h4>Example: Why NOT to Store Ratios (The Math Problem)</h4>
+                <p>Consider these two orders with their profit margins:</p>
+                
+                <table class="data-table" style="margin: 1rem 0;">
+                    <thead>
+                        <tr><th>Order</th><th>Revenue</th><th>Cost</th><th>Margin $</th><th>Margin %</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Order A</td><td>$100</td><td>$80</td><td>$20</td><td>20%</td></tr>
+                        <tr><td>Order B</td><td>$1,000</td><td>$900</td><td>$100</td><td>10%</td></tr>
+                    </tbody>
+                </table>
+
+                <p><strong>❌ WRONG: Sum the margin percentages</strong></p>
+                <div class="schema-display" style="margin: 1rem 0;">
+<span class="keyword">-- If you stored margin_pct and summed it:</span>
+<span class="keyword">SELECT SUM</span>(margin_pct) <span class="keyword">FROM</span> <span class="table-name">orders</span>;
+<span class="keyword">-- Result: 30% — This is MEANINGLESS!</span>
+                </div>
+
+                <p><strong>✅ CORRECT: Compute ratio from sums</strong></p>
+                <div class="schema-display" style="margin: 1rem 0;">
+<span class="keyword">-- Store additive components, compute ratio AFTER summing:</span>
+<span class="keyword">SELECT</span> 
+    <span class="keyword">SUM</span>(margin_dollars) / <span class="keyword">SUM</span>(revenue) * <span class="column">100</span> <span class="keyword">AS</span> overall_margin_pct
+<span class="keyword">FROM</span> <span class="table-name">orders</span>;
+<span class="keyword">-- Result: ($120 / $1,100) × 100 = 10.9% — CORRECT weighted average!</span>
+                </div>
+
+                <div class="key-points" style="margin-top: 1rem;">
+                    <h4>📌 The Rule</h4>
+                    <p><strong>"Ratio of the sums, not sum of the ratios!"</strong><br>
+                    Always store the numerator and denominator as separate facts, then compute the ratio after aggregation.</p>
+                </div>
             </div>
 
             <!-- Transaction Diagram -->
@@ -876,9 +1021,168 @@
                 </ul>
             </div>
 
+            <!-- DETAILED EXAMPLE: Problem 1 - Sparsity -->
+            <div class="example-box" style="margin-top: 2rem;">
+                <h4>Example: Problem 1 — Sparsity Issue in Detail</h4>
+                <p>Imagine you add a <code>running_balance</code> column to your transaction fact table. Here's what the data would look like for Account #12345:</p>
+                
+                <table class="data-table" style="margin: 1rem 0;">
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Transaction Type</th>
+                            <th>Amount</th>
+                            <th>Running Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>2/1</td><td>Initial Deposit</td><td>$2,000.00</td><td>$2,000.00</td></tr>
+                        <tr><td>2/2</td><td>Withdrawal</td><td>($20.00)</td><td>$1,980.00</td></tr>
+                        <tr><td>2/3</td><td>Check</td><td>($35.50)</td><td>$1,944.50</td></tr>
+                        <tr style="background:#fef2f2"><td colspan="4" style="text-align:center; color:#991b1b; font-weight:600">❌ No rows for 2/4, 2/5 — no transactions occurred!</td></tr>
+                        <tr><td>2/6</td><td>Check</td><td>($75.00)</td><td>$1,869.50</td></tr>
+                    </tbody>
+                </table>
+                
+                <p><strong>🤔 The Problem:</strong> A business user asks: "What was the account balance on February 4th?"</p>
+                
+                <div class="schema-display" style="margin: 1rem 0;">
+<span class="keyword">-- This simple query FAILS because there's no row for 2/4!</span>
+<span class="keyword">SELECT</span> running_balance 
+<span class="keyword">FROM</span> <span class="table-name">account_transactions</span>
+<span class="keyword">WHERE</span> account_id = <span class="column">12345</span> 
+  <span class="keyword">AND</span> transaction_date = <span class="column">'2024-02-04'</span>;
+
+<span class="keyword">-- Result: EMPTY! No rows returned.</span>
+                </div>
+
+                <p><strong>😓 The Workaround:</strong> To find the balance on 2/4, you must search <em>backward</em> through time to find the most recent transaction:</p>
+
+                <div class="schema-display" style="margin: 1rem 0;">
+<span class="keyword">-- Complex query to find "most recent balance before date"</span>
+<span class="keyword">SELECT</span> running_balance 
+<span class="keyword">FROM</span> <span class="table-name">account_transactions</span>
+<span class="keyword">WHERE</span> account_id = <span class="column">12345</span> 
+  <span class="keyword">AND</span> transaction_date = (
+      <span class="keyword">SELECT MAX</span>(transaction_date) 
+      <span class="keyword">FROM</span> <span class="table-name">account_transactions</span>
+      <span class="keyword">WHERE</span> account_id = <span class="column">12345</span>
+        <span class="keyword">AND</span> transaction_date <= <span class="column">'2024-02-04'</span>
+  );
+
+<span class="keyword">-- This works but is SLOW and COMPLEX, especially at scale</span>
+                </div>
+
+                <p><strong>📊 Scale Problem:</strong> Now imagine running this for 100,000 accounts across a year. Each account needs a correlated subquery scanning backward through history. This becomes a major performance bottleneck!</p>
+            </div>
+
+            <!-- DETAILED EXAMPLE: Problem 2 - Double-Counting -->
+            <div class="example-box" style="margin-top: 2rem;">
+                <h4>Example: Problem 2 — Double-Counting Issue in Detail</h4>
+                <p>On February 6th, the account had <strong>two transactions</strong> in a single day. Here's what the data looks like:</p>
+                
+                <table class="data-table" style="margin: 1rem 0;">
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Transaction Type</th>
+                            <th>Amount</th>
+                            <th>Running Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>2/5</td><td>Deposit</td><td>$100.00</td><td>$2,044.50</td></tr>
+                        <tr style="background:#fef3c7"><td>2/6</td><td>Check</td><td>($75.00)</td><td style="color:#92400e; font-weight:700">$1,969.50</td></tr>
+                        <tr style="background:#fef3c7"><td>2/6</td><td>Check</td><td>($800.00)</td><td style="color:#92400e; font-weight:700">$1,169.50</td></tr>
+                        <tr><td>2/7</td><td>Withdrawal</td><td>($100.00)</td><td>$1,069.50</td></tr>
+                    </tbody>
+                </table>
+
+                <p><strong>🤔 The Problem:</strong> A business user asks: "What was the total balance across all accounts on February 6th?"</p>
+                
+                <div class="schema-display" style="margin: 1rem 0;">
+<span class="keyword">-- This query produces WRONG results!</span>
+<span class="keyword">SELECT</span> transaction_date, <span class="keyword">SUM</span>(running_balance) <span class="keyword">AS</span> total_balance
+<span class="keyword">FROM</span> <span class="table-name">account_transactions</span>
+<span class="keyword">WHERE</span> transaction_date = <span class="column">'2024-02-06'</span>
+<span class="keyword">GROUP BY</span> transaction_date;
+                </div>
+
+                <p><strong>❌ What the Query Returns (WRONG):</strong></p>
+                <table class="data-table" style="margin: 1rem 0; max-width: 400px;">
+                    <thead>
+                        <tr><th>Account</th><th>Sum of Balances on 2/6</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Account #12345</td><td style="color:#991b1b; font-weight:700">$3,139.00 ❌</td></tr>
+                    </tbody>
+                </table>
+                <p style="color:#991b1b; font-style:italic;">The balance was counted TWICE because there were two transactions! ($1,969.50 + $1,169.50 = $3,139.00)</p>
+
+                <p><strong>✅ What the Answer Should Be:</strong></p>
+                <table class="data-table" style="margin: 1rem 0; max-width: 400px;">
+                    <thead>
+                        <tr><th>Account</th><th>Actual End-of-Day Balance</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Account #12345</td><td style="color:#166534; font-weight:700">$1,169.50 ✓</td></tr>
+                    </tbody>
+                </table>
+
+                <p><strong>😓 The Workaround:</strong> You'd need a complex query to get only the <em>last</em> balance of the day:</p>
+
+                <div class="schema-display" style="margin: 1rem 0;">
+<span class="keyword">-- Must use ROW_NUMBER() or MAX to avoid double-counting</span>
+<span class="keyword">WITH</span> ranked <span class="keyword">AS</span> (
+    <span class="keyword">SELECT</span> *, 
+           <span class="keyword">ROW_NUMBER() OVER</span>(
+               <span class="keyword">PARTITION BY</span> account_id, transaction_date 
+               <span class="keyword">ORDER BY</span> transaction_time <span class="keyword">DESC</span>
+           ) <span class="keyword">AS</span> rn
+    <span class="keyword">FROM</span> <span class="table-name">account_transactions</span>
+    <span class="keyword">WHERE</span> transaction_date = <span class="column">'2024-02-06'</span>
+)
+<span class="keyword">SELECT SUM</span>(running_balance) 
+<span class="keyword">FROM</span> ranked 
+<span class="keyword">WHERE</span> rn = <span class="column">1</span>;
+
+<span class="keyword">-- This works but is complex and error-prone!</span>
+                </div>
+            </div>
+
+            <div class="warning-box" style="margin-top: 2rem;">
+                <h4>The Core Issue</h4>
+                <p>These problems arise because <strong>transactions are sparse and can have multiple rows per day</strong>, while <strong>balances need one definitive value per day</strong>. You're trying to store two fundamentally different data patterns in the same table — it doesn't work!</p>
+            </div>
+
             <div class="tip-box">
                 <h4>Golden Rule</h4>
                 <p>Storing a transaction and its effect (balance) in the same row of a fact table is <strong>always problematic</strong>. When you need to study status measurements, use a separate snapshot fact table.</p>
+            </div>
+
+            <!-- Visual Summary of the Solution -->
+            <div class="diagram-container" style="margin-top: 2rem;">
+                <div class="diagram-title">✅ The Solution: Separate Tables for Different Purposes</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 1rem;">
+                    <div style="background: #dbeafe; padding: 1.5rem; border-radius: 8px;">
+                        <h4 style="color: #1e40af; margin: 0 0 1rem 0;">📝 Transaction Fact Table</h4>
+                        <p style="margin: 0; font-size: 0.9rem;">Stores <strong>individual events</strong></p>
+                        <ul style="font-size: 0.85rem; margin: 0.5rem 0;">
+                            <li>One row per transaction</li>
+                            <li>Only when activity occurs (sparse)</li>
+                            <li>Transaction amounts only</li>
+                        </ul>
+                    </div>
+                    <div style="background: #dcfce7; padding: 1.5rem; border-radius: 8px;">
+                        <h4 style="color: #166534; margin: 0 0 1rem 0;">📊 Snapshot Fact Table</h4>
+                        <p style="margin: 0; font-size: 0.9rem;">Stores <strong>daily balances</strong></p>
+                        <ul style="font-size: 0.85rem; margin: 0.5rem 0;">
+                            <li>One row per account per day</li>
+                            <li>Every day (dense)</li>
+                            <li>Balance values only</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
 
             <h3>The Snapshot Model</h3>
@@ -1005,6 +1309,53 @@
                 <p>However, the balance IS additive across other dimensions — you CAN add together balances from multiple accounts on the same day.</p>
             </div>
 
+            <!-- EXAMPLE: Semi-Additivity Deep Dive -->
+            <div class="example-box">
+                <h4>Example: Understanding Semi-Additivity with Data</h4>
+                <p>Consider this daily account balance snapshot for the first week of February:</p>
+                
+                <table class="data-table" style="margin: 1rem 0;">
+                    <thead>
+                        <tr><th>Day</th><th>Account A</th><th>Account B</th><th>Account C</th><th>Day Total</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Feb 1</td><td>$1,000</td><td>$2,000</td><td>$500</td><td style="background:#dcfce7; color:#166534; font-weight:700">$3,500 ✓</td></tr>
+                        <tr><td>Feb 2</td><td>$1,000</td><td>$2,100</td><td>$500</td><td style="background:#dcfce7; color:#166534; font-weight:700">$3,600 ✓</td></tr>
+                        <tr><td>Feb 3</td><td>$900</td><td>$2,100</td><td>$600</td><td style="background:#dcfce7; color:#166534; font-weight:700">$3,600 ✓</td></tr>
+                        <tr><td>Feb 4</td><td>$900</td><td>$2,050</td><td>$600</td><td style="background:#dcfce7; color:#166534; font-weight:700">$3,550 ✓</td></tr>
+                        <tr><td>Feb 5</td><td>$1,100</td><td>$2,050</td><td>$550</td><td style="background:#dcfce7; color:#166534; font-weight:700">$3,700 ✓</td></tr>
+                        <tr style="background:#fef2f2"><td><strong>SUM</strong></td><td style="color:#991b1b">$4,900 ❌</td><td style="color:#991b1b">$10,300 ❌</td><td style="color:#991b1b">$2,750 ❌</td><td style="color:#991b1b">$17,950 ❌</td></tr>
+                    </tbody>
+                </table>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                    <div style="background: #dcfce7; padding: 1rem; border-radius: 8px;">
+                        <h5 style="color: #166534; margin: 0 0 0.5rem 0;">✅ SUM Across Accounts (Same Day)</h5>
+                        <p style="font-size: 0.9rem; margin: 0;">On Feb 1, the bank has $3,500 in total deposits across all three accounts. This is <strong>meaningful and correct</strong>.</p>
+                    </div>
+                    <div style="background: #fef2f2; padding: 1rem; border-radius: 8px;">
+                        <h5 style="color: #991b1b; margin: 0 0 0.5rem 0;">❌ SUM Across Time</h5>
+                        <p style="font-size: 0.9rem; margin: 0;">Account A's "total" of $4,900 is <strong>meaningless</strong>. The account never had $4,900 — it just had ~$1,000 each day.</p>
+                    </div>
+                </div>
+
+                <div class="schema-display" style="margin: 1rem 0;">
+<span class="keyword">-- ✅ CORRECT: Sum across accounts for a single day</span>
+<span class="keyword">SELECT</span> snapshot_date, <span class="keyword">SUM</span>(balance) <span class="keyword">AS</span> total_deposits
+<span class="keyword">FROM</span> <span class="table-name">account_snapshot</span>
+<span class="keyword">WHERE</span> snapshot_date = <span class="column">'2024-02-01'</span>
+<span class="keyword">GROUP BY</span> snapshot_date;
+<span class="keyword">-- Result: Feb 1, $3,500 ✓</span>
+
+<span class="keyword">-- ❌ WRONG: Sum across time for a single account</span>
+<span class="keyword">SELECT</span> account_id, <span class="keyword">SUM</span>(balance) <span class="keyword">AS</span> total_balance
+<span class="keyword">FROM</span> <span class="table-name">account_snapshot</span>
+<span class="keyword">WHERE</span> account_id = <span class="column">'A'</span>
+<span class="keyword">GROUP BY</span> account_id;
+<span class="keyword">-- Result: $4,900 — BUT THIS IS MEANINGLESS!</span>
+                </div>
+            </div>
+
             <p>While semi-additive facts can't be summed across time, they can be meaningfully summarized using:</p>
             <ul>
                 <li><strong>Average</strong> — Average daily balance</li>
@@ -1012,6 +1363,38 @@
                 <li><strong>Maximum</strong> — Highest balance in period</li>
                 <li><strong>Last</strong> — Period-end balance</li>
             </ul>
+
+            <!-- EXAMPLE: Valid Aggregations -->
+            <div class="example-box">
+                <h4>Example: Valid Aggregations for Semi-Additive Facts</h4>
+                <p>Using the same data, here are <strong>meaningful</strong> ways to aggregate across time:</p>
+                
+                <div class="schema-display" style="margin: 1rem 0;">
+<span class="keyword">-- Average daily balance for Account A</span>
+<span class="keyword">SELECT</span> account_id, <span class="keyword">AVG</span>(balance) <span class="keyword">AS</span> avg_daily_balance
+<span class="keyword">FROM</span> <span class="table-name">account_snapshot</span>
+<span class="keyword">WHERE</span> account_id = <span class="column">'A'</span> 
+  <span class="keyword">AND</span> snapshot_date <span class="keyword">BETWEEN</span> <span class="column">'2024-02-01'</span> <span class="keyword">AND</span> <span class="column">'2024-02-05'</span>
+<span class="keyword">GROUP BY</span> account_id;
+<span class="keyword">-- Result: $980 average balance ✓</span>
+
+<span class="keyword">-- Period-end balance (last day of period)</span>
+<span class="keyword">SELECT</span> account_id, balance <span class="keyword">AS</span> period_end_balance
+<span class="keyword">FROM</span> <span class="table-name">account_snapshot</span>
+<span class="keyword">WHERE</span> account_id = <span class="column">'A'</span> 
+  <span class="keyword">AND</span> snapshot_date = <span class="column">'2024-02-05'</span>;
+<span class="keyword">-- Result: $1,100 ✓</span>
+
+<span class="keyword">-- Minimum and maximum in period</span>
+<span class="keyword">SELECT</span> account_id, 
+       <span class="keyword">MIN</span>(balance) <span class="keyword">AS</span> min_balance,
+       <span class="keyword">MAX</span>(balance) <span class="keyword">AS</span> max_balance
+<span class="keyword">FROM</span> <span class="table-name">account_snapshot</span>
+<span class="keyword">WHERE</span> account_id = <span class="column">'A'</span>
+<span class="keyword">GROUP BY</span> account_id;
+<span class="keyword">-- Result: min=$900, max=$1,100 ✓</span>
+                </div>
+            </div>
 
             <h3>Embellishing the Snapshot</h3>
             <p>A snapshot can be enhanced with additional facts to make reporting easier:</p>
@@ -1058,6 +1441,136 @@
                     <li><strong>Fully additive facts:</strong> Transaction counts and dollar amounts summarize the period's activity</li>
                     <li><strong>Period-to-date facts:</strong> YTD, QTD, MTD measurements</li>
                 </ul>
+            </div>
+
+            <!-- EXAMPLE: Sum of Daily Balances Trick -->
+            <div class="example-box">
+                <h4>Example: The "Sum of Daily Balances" Trick — Computing Average Balance</h4>
+                <p>This is one of the cleverest techniques in dimensional modeling. The challenge: <strong>How do you compute average balance across multiple accounts when you can't SUM balances?</strong></p>
+
+                <p><strong>The Problem:</strong> You want "average daily balance for all checking accounts in February."</p>
+                
+                <table class="data-table" style="margin: 1rem 0;">
+                    <thead>
+                        <tr><th>Account</th><th>Feb 1</th><th>Feb 2</th><th>Feb 3</th><th>Feb 4</th><th>Feb 5</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Acct A</td><td>$1,000</td><td>$1,000</td><td>$900</td><td>$900</td><td>$1,100</td></tr>
+                        <tr><td>Acct B</td><td>$2,000</td><td>$2,100</td><td>$2,100</td><td>$2,050</td><td>$2,050</td></tr>
+                    </tbody>
+                </table>
+
+                <p><strong>❌ The Naive Approach (WRONG):</strong></p>
+                <div class="schema-display" style="margin: 1rem 0;">
+<span class="keyword">-- Can't just AVG all balances — this double-counts days!</span>
+<span class="keyword">SELECT AVG</span>(balance) <span class="keyword">FROM</span> <span class="table-name">daily_snapshot</span>;
+<span class="keyword">-- Returns $1,520 (average of 10 rows)</span>
+<span class="keyword">-- But this treats Acct A and Acct B as having equal weight...</span>
+                </div>
+
+                <p><strong>✅ The Solution: Store <code>sum_of_daily_balances</code> in the monthly snapshot</strong></p>
+                
+                <table class="data-table" style="margin: 1rem 0;">
+                    <thead>
+                        <tr><th>Account</th><th>Month</th><th>Begin Bal</th><th>End Bal</th><th style="background:#fef3c7">Sum Daily Bal</th><th>Days in Period</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Acct A</td><td>Feb</td><td>$1,000</td><td>$1,100</td><td style="background:#fef3c7">$4,900</td><td>5</td></tr>
+                        <tr><td>Acct B</td><td>Feb</td><td>$2,000</td><td>$2,050</td><td style="background:#fef3c7">$10,300</td><td>5</td></tr>
+                    </tbody>
+                </table>
+
+                <p><strong>Why it works:</strong> <code>sum_of_daily_balances</code> IS fully additive! You can SUM it across accounts, then divide by total days to get a proper weighted average:</p>
+
+                <div class="schema-display" style="margin: 1rem 0;">
+<span class="keyword">-- Correct calculation for average balance across accounts</span>
+<span class="keyword">SELECT</span> 
+    <span class="keyword">SUM</span>(sum_of_daily_balances) / <span class="keyword">SUM</span>(days_in_period) <span class="keyword">AS</span> avg_balance
+<span class="keyword">FROM</span> <span class="table-name">monthly_snapshot</span>
+<span class="keyword">WHERE</span> month = <span class="column">'2024-02'</span>;
+
+<span class="keyword">-- Calculation: ($4,900 + $10,300) / (5 + 5) = $15,200 / 10 = $1,520</span>
+<span class="keyword">-- Now this is the TRUE weighted average daily balance! ✓</span>
+                </div>
+
+                <div class="tip-box" style="margin-top: 1rem;">
+                    <h4>Why This Technique is Powerful</h4>
+                    <p>This works because:</p>
+                    <ul>
+                        <li><code>sum_of_daily_balances</code> = $1,000 + $1,000 + $900 + $900 + $1,100 = $4,900 for Acct A</li>
+                        <li>You can SUM this value across accounts (it's additive!)</li>
+                        <li>Dividing by total days gives you the weighted average</li>
+                        <li>Accounts with more days contribute proportionally more to the average</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- EXAMPLE: Enhanced Monthly Snapshot Data -->
+            <div class="example-box">
+                <h4>Example: Complete Enhanced Monthly Snapshot</h4>
+                <p>Here's what a fully embellished monthly account snapshot looks like with real data:</p>
+                
+                <table class="data-table" style="margin: 1rem 0; font-size: 0.8rem;">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Account</th>
+                            <th>Begin Bal</th>
+                            <th>End Bal</th>
+                            <th>Sum Daily Bal</th>
+                            <th>Deposits #</th>
+                            <th>Deposits $</th>
+                            <th>Withdrawals #</th>
+                            <th>Withdrawals $</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Jan 2024</td>
+                            <td>12345</td>
+                            <td>$2,500</td>
+                            <td>$2,800</td>
+                            <td>$82,150</td>
+                            <td>3</td>
+                            <td>$1,500</td>
+                            <td>8</td>
+                            <td>$1,200</td>
+                        </tr>
+                        <tr>
+                            <td>Feb 2024</td>
+                            <td>12345</td>
+                            <td>$2,800</td>
+                            <td>$2,650</td>
+                            <td>$78,400</td>
+                            <td>2</td>
+                            <td>$500</td>
+                            <td>6</td>
+                            <td>$650</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p><strong>Notice these key features:</strong></p>
+                <ul>
+                    <li><strong>Redundancy:</strong> January's <code>end_balance</code> ($2,800) = February's <code>begin_balance</code> — redundant but useful!</li>
+                    <li><strong>Additive embellishments:</strong> Deposit/withdrawal counts and amounts can be summed freely</li>
+                    <li><strong>Query simplicity:</strong> No joins to transaction table needed for common reports</li>
+                </ul>
+
+                <div class="schema-display" style="margin: 1rem 0;">
+<span class="keyword">-- Easy query: "Show me Q1 summary for all accounts"</span>
+<span class="keyword">SELECT</span> 
+    account_id,
+    <span class="keyword">MIN</span>(begin_balance) <span class="keyword">AS</span> q1_start_balance,  <span class="keyword">-- First month's begin</span>
+    <span class="keyword">MAX</span>(end_balance) <span class="keyword">AS</span> q1_end_balance,      <span class="keyword">-- Last month's end</span>
+    <span class="keyword">SUM</span>(sum_daily_balances) / <span class="column">90</span> <span class="keyword">AS</span> avg_daily_balance,
+    <span class="keyword">SUM</span>(deposit_count) <span class="keyword">AS</span> total_deposits,
+    <span class="keyword">SUM</span>(deposit_dollars) <span class="keyword">AS</span> total_deposited,
+    <span class="keyword">SUM</span>(withdrawal_count) <span class="keyword">AS</span> total_withdrawals
+<span class="keyword">FROM</span> <span class="table-name">monthly_account_snapshot</span>
+<span class="keyword">WHERE</span> month_key <span class="keyword">BETWEEN</span> <span class="column">'2024-01'</span> <span class="keyword">AND</span> <span class="column">'2024-03'</span>
+<span class="keyword">GROUP BY</span> account_id;
+                </div>
             </div>
 
             <h3>Period-to-Date Measurements</h3>
@@ -1130,12 +1643,121 @@
                 <p>To figure out how long it took to review an application requires computing elapsed days between submission and approval — but these are in <strong>separate rows</strong>. For a group of applications, this requires a <strong>correlated subquery</strong> — complex to write and poor performing.</p>
             </div>
 
+            <!-- EXAMPLE: Correlated Subquery Problem -->
+            <div class="example-box">
+                <h4>Example: The Correlated Subquery Nightmare</h4>
+                <p>Consider a mortgage application process tracked as transactions. Each status change creates a row:</p>
+                
+                <table class="data-table" style="margin: 1rem 0;">
+                    <thead>
+                        <tr><th>App ID</th><th>Status</th><th>Status Date</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>A001</td><td>Submitted</td><td>Feb 1</td></tr>
+                        <tr><td>A001</td><td>Reviewed</td><td>Feb 10</td></tr>
+                        <tr><td>A001</td><td>Processed</td><td>Feb 18</td></tr>
+                        <tr><td>A002</td><td>Submitted</td><td>Feb 3</td></tr>
+                        <tr><td>A002</td><td>Reviewed</td><td>Feb 8</td></tr>
+                        <tr><td>A002</td><td>Processed</td><td>Feb 20</td></tr>
+                        <tr><td>A003</td><td>Submitted</td><td>Feb 5</td></tr>
+                        <tr><td>A003</td><td>Reviewed</td><td>Feb 15</td></tr>
+                    </tbody>
+                </table>
+
+                <p><strong>🤔 Business Question:</strong> "What was the average days from submission to processing completion?"</p>
+
+                <div class="schema-display" style="margin: 1rem 0;">
+<span class="keyword">-- This requires a CORRELATED SUBQUERY — complex and SLOW!</span>
+<span class="keyword">SELECT</span> 
+    t1.application_id,
+    <span class="keyword">DATEDIFF</span>(
+        (<span class="keyword">SELECT</span> status_date <span class="keyword">FROM</span> <span class="table-name">status_changes</span> t2 
+         <span class="keyword">WHERE</span> t2.application_id = t1.application_id 
+           <span class="keyword">AND</span> t2.status = <span class="column">'Processed'</span>),
+        t1.status_date
+    ) <span class="keyword">AS</span> days_to_process
+<span class="keyword">FROM</span> <span class="table-name">status_changes</span> t1
+<span class="keyword">WHERE</span> t1.status = <span class="column">'Submitted'</span>;
+
+<span class="keyword">-- For EACH row in the outer query, the database must:</span>
+<span class="keyword">-- 1. Execute the inner query</span>
+<span class="keyword">-- 2. Find the matching "Processed" row</span>
+<span class="keyword">-- 3. Calculate the date difference</span>
+<span class="keyword">-- This is O(n²) complexity! 💀</span>
+                </div>
+
+                <p><strong>😓 The Performance Problem:</strong></p>
+                <ul>
+                    <li>100 applications → 100 inner queries</li>
+                    <li>10,000 applications → 10,000 inner queries</li>
+                    <li>1,000,000 applications → 1,000,000 inner queries (database meltdown!)</li>
+                </ul>
+
+                <p><strong>✅ With Accumulating Snapshot:</strong></p>
+                <div class="schema-display" style="margin: 1rem 0;">
+<span class="keyword">-- Simple, FAST query with accumulating snapshot!</span>
+<span class="keyword">SELECT</span> 
+    application_id,
+    days_reviewing + days_processing <span class="keyword">AS</span> total_days,
+    <span class="keyword">AVG</span>(days_reviewing + days_processing) <span class="keyword">OVER</span>() <span class="keyword">AS</span> avg_days
+<span class="keyword">FROM</span> <span class="table-name">mortgage_processing_snapshot</span>
+<span class="keyword">WHERE</span> status = <span class="column">'Processed'</span>;
+
+<span class="keyword">-- Single table scan, no subqueries, O(n) complexity ✓</span>
+                </div>
+            </div>
+
             <h4>What About Begin and End Dates?</h4>
             <p>Adding begin/end dates for each status helps for adjacent stages, but:</p>
             <ul>
                 <li>Doesn't help when processes aren't linear (items can go back to prior stages)</li>
                 <li>Doesn't help when measuring time across <strong>multiple stages</strong> (e.g., submission to settlement)</li>
             </ul>
+
+            <!-- EXAMPLE: Multi-Stage Problem -->
+            <div class="example-box">
+                <h4>Example: Why Begin/End Dates Don't Solve Multi-Stage Analysis</h4>
+                <p>Even if you add <code>begin_date</code> and <code>end_date</code> to each status row:</p>
+                
+                <table class="data-table" style="margin: 1rem 0;">
+                    <thead>
+                        <tr><th>App ID</th><th>Status</th><th>Begin Date</th><th>End Date</th><th>Days</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>A001</td><td>Submitted</td><td>Feb 1</td><td>Feb 10</td><td>9</td></tr>
+                        <tr><td>A001</td><td>Reviewed</td><td>Feb 10</td><td>Feb 18</td><td>8</td></tr>
+                        <tr><td>A001</td><td>Processed</td><td>Feb 18</td><td>Feb 25</td><td>7</td></tr>
+                        <tr><td>A001</td><td>Settled</td><td>Feb 25</td><td>Mar 1</td><td>4</td></tr>
+                    </tbody>
+                </table>
+
+                <p><strong>🤔 Business Question:</strong> "Average time from submission to settlement?"</p>
+                <p style="color:#991b1b"><strong>❌ Still requires joining/summing across multiple rows!</strong></p>
+
+                <div class="schema-display" style="margin: 1rem 0;">
+<span class="keyword">-- Still need complex aggregation across rows</span>
+<span class="keyword">SELECT</span> 
+    application_id,
+    <span class="keyword">SUM</span>(days_in_status) <span class="keyword">AS</span> total_days
+<span class="keyword">FROM</span> <span class="table-name">status_history</span>
+<span class="keyword">GROUP BY</span> application_id;
+
+<span class="keyword">-- But what if you only want Submitted→Processed (skipping Settled)?</span>
+<span class="keyword">-- Now you need WHERE clauses to filter stages...</span>
+<span class="keyword">-- And what about applications that went BACK to prior stages?</span>
+                </div>
+
+                <p><strong>✅ With Accumulating Snapshot:</strong> All stage durations are pre-calculated columns!</p>
+                <div class="schema-display" style="margin: 1rem 0;">
+<span class="keyword">-- Direct access to any stage combination</span>
+<span class="keyword">SELECT</span> 
+    application_id,
+    days_submitted_to_settled,           <span class="keyword">-- Total time</span>
+    days_reviewing + days_processing,    <span class="keyword">-- Just review+processing</span>
+    days_pending_settlement              <span class="keyword">-- Just final stage</span>
+<span class="keyword">FROM</span> <span class="table-name">mortgage_processing_snapshot</span>;
+                </div>
+            </div>
 
             <h3>The Accumulating Snapshot Design</h3>
             <p>An accumulating snapshot is fundamentally different from other fact tables:</p>
@@ -1324,6 +1946,64 @@
             </div>
             <p style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-top: -0.5rem;">Application returned due to missing signature</p>
 
+            <!-- EXAMPLE: Nonlinear Process -->
+            <div class="example-box">
+                <h4>Example: Handling an Application That Goes Backward</h4>
+                <p>Application A005 moves through the process but gets sent <strong>back to Submitted</strong> due to a missing document:</p>
+                
+                <table class="data-table" style="margin: 1rem 0;">
+                    <thead>
+                        <tr><th>Date</th><th>Event</th><th>Status After</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Feb 1</td><td>Application received</td><td>Submitted</td></tr>
+                        <tr><td>Feb 5</td><td>Review begins</td><td>Under Review</td></tr>
+                        <tr><td>Feb 10</td><td>Missing W-2 form detected</td><td style="background:#fef2f2; color:#991b1b">Submitted (returned!)</td></tr>
+                        <tr><td>Feb 14</td><td>W-2 received, review restarts</td><td>Under Review</td></tr>
+                        <tr><td>Feb 18</td><td>Review complete</td><td>Reviewed</td></tr>
+                    </tbody>
+                </table>
+
+                <p><strong>🤔 The Question:</strong> How do we track <code>days_reviewing</code>?</p>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                    <div style="background: #dcfce7; padding: 1rem; border-radius: 8px;">
+                        <h5 style="color: #166534; margin: 0 0 0.5rem 0;">✅ Correct Approach: Resume Counting</h5>
+                        <p style="font-size: 0.85rem; margin: 0;">
+                            <strong>First review period:</strong> Feb 5–10 = 5 days<br>
+                            <strong>Second review period:</strong> Feb 14–18 = 4 days<br>
+                            <strong>Total <code>days_reviewing</code> = 9 days</strong>
+                        </p>
+                    </div>
+                    <div style="background: #fef2f2; padding: 1rem; border-radius: 8px;">
+                        <h5 style="color: #991b1b; margin: 0 0 0.5rem 0;">❌ Wrong Approach: Only Count Final</h5>
+                        <p style="font-size: 0.85rem; margin: 0;">
+                            Only counting Feb 14–18 = 4 days would <strong>hide</strong> the rework time, making the process look faster than it really is.
+                        </p>
+                    </div>
+                </div>
+
+                <p><strong>📋 Row Evolution for A005:</strong></p>
+                <table class="data-table" style="margin: 1rem 0; font-size: 0.8rem;">
+                    <thead>
+                        <tr>
+                            <th>As of Date</th>
+                            <th>day_key_submitted</th>
+                            <th>day_key_reviewed</th>
+                            <th>days_reviewing</th>
+                            <th>Current Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Feb 1</td><td style="background:#dcfce7">Feb 1</td><td>NULL</td><td>0</td><td>Submitted</td></tr>
+                        <tr><td>Feb 5</td><td>Feb 1</td><td>NULL</td><td style="background:#fef3c7">4</td><td>Under Review</td></tr>
+                        <tr><td>Feb 10</td><td>Feb 1</td><td>NULL</td><td style="background:#fef3c7">5</td><td>Submitted (returned)</td></tr>
+                        <tr><td>Feb 14</td><td>Feb 1</td><td>NULL</td><td>5 <small>(paused)</small></td><td>Under Review (again)</td></tr>
+                        <tr><td>Feb 18</td><td>Feb 1</td><td style="background:#dcfce7">Feb 18</td><td style="background:#dcfce7">9</td><td>Reviewed</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
             <div class="key-points">
                 <h4>📌 Rules for Nonlinear Processes</h4>
                 <ul>
@@ -1336,6 +2016,39 @@
                     </li>
                     <li><strong>These are business decisions</strong>, not technical ones — let business users decide</li>
                 </ul>
+            </div>
+
+            <!-- EXAMPLE: Milestone Date Business Rules -->
+            <div class="example-box">
+                <h4>Example: Business Rules for Milestone Dates</h4>
+                <p>When an application returns to a prior stage, when should we record the milestone dates? Here are two common approaches that the <strong>business</strong> must decide:</p>
+                
+                <table class="comparison-table" style="margin: 1rem 0;">
+                    <thead>
+                        <tr>
+                            <th>Milestone</th>
+                            <th>Option A: Earliest Date</th>
+                            <th>Option B: Latest Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>day_key_submitted</code></td>
+                            <td>Feb 1 (first submission)<br><small>Shows when process started</small></td>
+                            <td>Feb 10 (re-submission)<br><small>Shows most recent attempt</small></td>
+                        </tr>
+                        <tr>
+                            <td><code>day_key_reviewed</code></td>
+                            <td>Feb 10 (first review complete)<br><small>Even though sent back</small></td>
+                            <td>Feb 18 (final review)<br><small>When truly completed</small></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="tip-box" style="margin-top: 1rem;">
+                    <h4>Best Practice</h4>
+                    <p>Most businesses prefer <strong>earliest date for the start</strong> (when did the clock start?) and <strong>latest date for completion</strong> (when was it truly done?). But <strong>always confirm with stakeholders</strong> — they know what metrics matter!</p>
+                </div>
             </div>
 
             <h3>Slow Changes in Accumulating Snapshots</h3>
@@ -1449,6 +2162,36 @@
                 </ul>
             </div>
 
+            <!-- EXAMPLE: Transaction Real-World Scenarios -->
+            <div class="example-box" style="background: #f0f9ff; border-color: #bae6fd;">
+                <h4 style="color: #1e40af;">🏪 Real-World Scenario: Retail Sales Analysis</h4>
+                <p><strong>Business Need:</strong> Analyze sales patterns, identify bestsellers, track promotional effectiveness</p>
+                
+                <p><strong>Sample Questions:</strong></p>
+                <ul>
+                    <li>"How many units of Product X did we sell last month?"</li>
+                    <li>"What's the breakdown of sales by store region?"</li>
+                    <li>"Which cashier had the highest sales volume on Black Friday?"</li>
+                    <li>"Show me all transactions for customer #12345"</li>
+                </ul>
+
+                <p><strong>Why Transaction Fact Table:</strong> Each sale is a discrete event. You need to slice and dice by multiple dimensions (product, store, time, customer, promotion) and drill down to individual receipts.</p>
+                
+                <div class="schema-display" style="margin: 1rem 0;">
+<span class="keyword">-- Typical transaction fact query</span>
+<span class="keyword">SELECT</span> 
+    d.region,
+    p.category,
+    <span class="keyword">SUM</span>(f.quantity) <span class="keyword">AS</span> units_sold,
+    <span class="keyword">SUM</span>(f.sales_amount) <span class="keyword">AS</span> revenue
+<span class="keyword">FROM</span> <span class="table-name">sales_facts</span> f
+<span class="keyword">JOIN</span> <span class="table-name">dim_store</span> d <span class="keyword">ON</span> f.store_key = d.store_key
+<span class="keyword">JOIN</span> <span class="table-name">dim_product</span> p <span class="keyword">ON</span> f.product_key = p.product_key
+<span class="keyword">WHERE</span> f.sale_date <span class="keyword">BETWEEN</span> <span class="column">'2024-11-01'</span> <span class="keyword">AND</span> <span class="column">'2024-11-30'</span>
+<span class="keyword">GROUP BY</span> d.region, p.category;
+                </div>
+            </div>
+
             <div class="example-box">
                 <h4>Use Periodic Snapshot When...</h4>
                 <ul>
@@ -1457,6 +2200,38 @@
                     <li>Status has no corresponding transactions (temperature, etc.)</li>
                     <li>Questions are about "what was the balance/level at point X"</li>
                 </ul>
+            </div>
+
+            <!-- EXAMPLE: Snapshot Real-World Scenarios -->
+            <div class="example-box" style="background: #ecfdf5; border-color: #a7f3d0;">
+                <h4 style="color: #166534;">📦 Real-World Scenario: Inventory Management</h4>
+                <p><strong>Business Need:</strong> Track inventory levels, identify stockouts, optimize reorder points</p>
+                
+                <p><strong>Sample Questions:</strong></p>
+                <ul>
+                    <li>"What was our inventory level for Widget X at each warehouse on December 31st?"</li>
+                    <li>"Show average monthly inventory for all SKUs in Q4"</li>
+                    <li>"Which products fell below safety stock levels last week?"</li>
+                    <li>"What's our inventory turnover rate by category?"</li>
+                </ul>
+
+                <p><strong>Why Periodic Snapshot:</strong> Inventory level is a <em>status measurement</em> — you need to know the level at specific points in time, not just when things change. Computing level from every shipment and sale would be extremely slow.</p>
+                
+                <div class="schema-display" style="margin: 1rem 0;">
+<span class="keyword">-- Typical periodic snapshot query</span>
+<span class="keyword">SELECT</span> 
+    p.product_name,
+    w.warehouse_name,
+    s.quantity_on_hand,
+    s.quantity_on_order,
+    p.reorder_point,
+    <span class="keyword">CASE WHEN</span> s.quantity_on_hand < p.reorder_point 
+         <span class="keyword">THEN</span> <span class="column">'REORDER'</span> <span class="keyword">ELSE</span> <span class="column">'OK'</span> <span class="keyword">END AS</span> status
+<span class="keyword">FROM</span> <span class="table-name">inventory_snapshot</span> s
+<span class="keyword">JOIN</span> <span class="table-name">dim_product</span> p <span class="keyword">ON</span> s.product_key = p.product_key
+<span class="keyword">JOIN</span> <span class="table-name">dim_warehouse</span> w <span class="keyword">ON</span> s.warehouse_key = w.warehouse_key
+<span class="keyword">WHERE</span> s.snapshot_date = <span class="column">'2024-12-31'</span>;
+                </div>
             </div>
 
             <div class="example-box">
@@ -1469,9 +2244,87 @@
                 </ul>
             </div>
 
+            <!-- EXAMPLE: Accumulating Snapshot Real-World Scenarios -->
+            <div class="example-box" style="background: #faf5ff; border-color: #e9d5ff;">
+                <h4 style="color: #86198f;">🎫 Real-World Scenario: Customer Support Ticket System</h4>
+                <p><strong>Business Need:</strong> Track ticket resolution times, identify bottlenecks, measure SLA compliance</p>
+                
+                <p><strong>Sample Questions:</strong></p>
+                <ul>
+                    <li>"What's the average time from ticket creation to resolution?"</li>
+                    <li>"How long do tickets spend waiting for customer response?"</li>
+                    <li>"Which support tier has the longest resolution times?"</li>
+                    <li>"What percentage of tickets meet our 4-hour SLA?"</li>
+                </ul>
+
+                <p><strong>Why Accumulating Snapshot:</strong> Each ticket moves through stages (Created → Assigned → In Progress → Awaiting Customer → Resolved). You need to track elapsed time at each stage and measure end-to-end process efficiency.</p>
+                
+                <div class="schema-display" style="margin: 1rem 0;">
+<span class="keyword">-- Typical accumulating snapshot query</span>
+<span class="keyword">SELECT</span> 
+    t.priority,
+    <span class="keyword">AVG</span>(s.hours_to_first_response) <span class="keyword">AS</span> avg_response_time,
+    <span class="keyword">AVG</span>(s.hours_in_progress) <span class="keyword">AS</span> avg_work_time,
+    <span class="keyword">AVG</span>(s.hours_awaiting_customer) <span class="keyword">AS</span> avg_wait_time,
+    <span class="keyword">AVG</span>(s.hours_created_to_resolved) <span class="keyword">AS</span> avg_total_time,
+    <span class="keyword">SUM</span>(<span class="keyword">CASE WHEN</span> s.hours_to_first_response <= <span class="column">4</span> 
+        <span class="keyword">THEN</span> <span class="column">1</span> <span class="keyword">ELSE</span> <span class="column">0</span> <span class="keyword">END</span>) * <span class="column">100.0</span> / <span class="keyword">COUNT</span>(*) <span class="keyword">AS</span> sla_pct
+<span class="keyword">FROM</span> <span class="table-name">ticket_snapshot</span> s
+<span class="keyword">JOIN</span> <span class="table-name">dim_ticket_type</span> t <span class="keyword">ON</span> s.ticket_type_key = t.ticket_type_key
+<span class="keyword">WHERE</span> s.date_resolved <span class="keyword">IS NOT NULL</span>
+<span class="keyword">GROUP BY</span> t.priority;
+                </div>
+            </div>
+
             <div class="tip-box">
                 <h4>Remember: You Can Combine Them!</h4>
                 <p>It's not an either/or decision. A single business process may need <strong>two or even all three</strong> types of fact tables working together. The inventory process, for example, can benefit from a transaction star (track shipments), a periodic snapshot (track levels), and an accumulating snapshot (track order fulfillment stages).</p>
+            </div>
+
+            <!-- EXAMPLE: Combined Approach -->
+            <div class="example-box">
+                <h4>Example: E-Commerce Order Fulfillment — Using All Three Types</h4>
+                <p>A comprehensive e-commerce data warehouse might use all three fact table types:</p>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                    <div style="background: #dbeafe; padding: 1rem; border-radius: 8px;">
+                        <h5 style="color: #1e40af; margin: 0 0 0.5rem 0;">📝 Transaction</h5>
+                        <p style="font-size: 0.85rem; margin: 0 0 0.5rem 0;"><strong>ORDER_LINE_FACTS</strong></p>
+                        <ul style="font-size: 0.8rem; margin: 0; padding-left: 1.2rem;">
+                            <li>Each item ordered</li>
+                            <li>Order amounts</li>
+                            <li>Payment details</li>
+                        </ul>
+                        <p style="font-size: 0.8rem; margin: 0.5rem 0 0 0; color: #64748b;">"How many orders this month?"</p>
+                    </div>
+                    <div style="background: #dcfce7; padding: 1rem; border-radius: 8px;">
+                        <h5 style="color: #166534; margin: 0 0 0.5rem 0;">📊 Periodic Snapshot</h5>
+                        <p style="font-size: 0.85rem; margin: 0 0 0.5rem 0;"><strong>INVENTORY_SNAPSHOT</strong></p>
+                        <ul style="font-size: 0.8rem; margin: 0; padding-left: 1.2rem;">
+                            <li>Daily stock levels</li>
+                            <li>Units reserved</li>
+                            <li>Units available</li>
+                        </ul>
+                        <p style="font-size: 0.8rem; margin: 0.5rem 0 0 0; color: #64748b;">"What's in stock right now?"</p>
+                    </div>
+                    <div style="background: #fae8ff; padding: 1rem; border-radius: 8px;">
+                        <h5 style="color: #86198f; margin: 0 0 0.5rem 0;">⏱️ Accumulating</h5>
+                        <p style="font-size: 0.85rem; margin: 0 0 0.5rem 0;"><strong>ORDER_FULFILLMENT</strong></p>
+                        <ul style="font-size: 0.8rem; margin: 0; padding-left: 1.2rem;">
+                            <li>Days to pick</li>
+                            <li>Days to ship</li>
+                            <li>Days to deliver</li>
+                        </ul>
+                        <p style="font-size: 0.8rem; margin: 0.5rem 0 0 0; color: #64748b;">"Avg days to delivery?"</p>
+                    </div>
+                </div>
+
+                <p><strong>Together, these answer the full range of business questions:</strong></p>
+                <ul>
+                    <li>📝 <strong>Transaction:</strong> "Revenue by product category?" "Avg order value by customer segment?"</li>
+                    <li>📊 <strong>Snapshot:</strong> "Which products are below reorder point?" "Historical stock levels?"</li>
+                    <li>⏱️ <strong>Accumulating:</strong> "Are orders shipping within SLA?" "Where are fulfillment bottlenecks?"</li>
+                </ul>
             </div>
         </section>
 
