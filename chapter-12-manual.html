@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 12: Factless Fact Tables | Star Schema Manual</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+Pro:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-navy: #1a2744;
+            --primary-blue: #2563eb;
+            --primary-purple: #7c3aed;
+            --accent-orange: #f59e0b;
+            --accent-emerald: #10b981;
+            --accent-rose: #f43f5e;
+            --accent-cyan: #06b6d4;
+            --bg-cream: #faf8f5;
+            --bg-white: #ffffff;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --border-light: #e2e8f0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 40px rgba(0,0,0,0.12);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-cream);
+            color: var(--text-dark);
+            line-height: 1.75;
+            font-size: 17px;
+        }
+
+        /* Header Styles */
+        header {
+            background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 50%, #6366f1 100%);
+            color: white;
+            padding: 3rem 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        .header-content {
+            max-width: 1100px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .chapter-label {
+            display: inline-block;
+            background: var(--accent-orange);
+            color: var(--primary-navy);
+            padding: 0.35rem 1rem;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        header h1 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            font-weight: 300;
+            max-width: 700px;
+        }
+
+        .mentor-note {
+            margin-top: 1.5rem;
+            padding: 1rem 1.25rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-emerald);
+            font-style: italic;
+        }
+
+        .mentor-note strong {
+            color: var(--accent-emerald);
+        }
+
+        /* Navigation */
+        nav {
+            background: var(--bg-white);
+            border-bottom: 1px solid var(--border-light);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .nav-content {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0;
+        }
+
+        nav li {
+            position: relative;
+        }
+
+        nav a {
+            display: block;
+            padding: 1rem 1.25rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+        }
+
+        nav a:hover {
+            color: var(--primary-purple);
+            background: rgba(124, 58, 237, 0.05);
+        }
+
+        nav a.active {
+            color: var(--primary-purple);
+            border-bottom-color: var(--primary-purple);
+        }
+
+        /* Main Content */
+        main {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        section {
+            background: var(--bg-white);
+            border-radius: 12px;
+            padding: 2.5rem;
+            margin-bottom: 2.5rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-light);
+        }
+
+        h2 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.9rem;
+            color: var(--primary-navy);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--primary-purple);
+            display: inline-block;
+        }
+
+        h3 {
+            font-size: 1.35rem;
+            color: var(--primary-navy);
+            margin: 2rem 0 1rem;
+            font-weight: 700;
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--text-dark);
+            margin: 1.5rem 0 0.75rem;
+            font-weight: 700;
+        }
+
+        p {
+            margin-bottom: 1.25rem;
+        }
+
+        /* Introduction Box */
+        .intro-box {
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+            border: 1px solid #c4b5fd;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .intro-box h3 {
+            color: var(--primary-purple);
+            margin-top: 0;
+            margin-bottom: 1rem;
+        }
+
+        /* Key Points Box */
+        .key-points {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 5px solid var(--accent-orange);
+            border-radius: 0 10px 10px 0;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .key-points h4 {
+            color: #92400e;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .key-points ul {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+
+        .key-points li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Tip Box */
+        .tip-box {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border-left: 5px solid var(--accent-emerald);
+            border-radius: 0 10px 10px 0;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .tip-box h4 {
+            color: #065f46;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tip-box h4::before {
+            content: '💡';
+        }
+
+        /* Warning Box */
+        .warning-box {
+            background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
+            border-left: 5px solid var(--accent-rose);
+            border-radius: 0 10px 10px 0;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .warning-box h4 {
+            color: #991b1b;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .warning-box h4::before {
+            content: '⚠️';
+        }
+
+        /* Definition Box */
+        .definition-box {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-left: 5px solid var(--primary-blue);
+            border-radius: 0 10px 10px 0;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .definition-box h4 {
+            color: #1e40af;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .definition-box h4::before {
+            content: '📖';
+        }
+
+        /* Example Box */
+        .example-box {
+            background: #f8fafc;
+            border: 2px dashed var(--border-light);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .example-box h4 {
+            color: var(--primary-purple);
+            margin-top: 0;
+        }
+
+        .example-box h4::before {
+            content: '📋 ';
+        }
+
+        /* Diagram Container */
+        .diagram-container {
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            overflow-x: auto;
+        }
+
+        .diagram-title {
+            text-align: center;
+            font-weight: 700;
+            color: var(--primary-navy);
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        /* Star Schema Diagram */
+        .star-diagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .fact-table {
+            background: linear-gradient(135deg, var(--primary-purple) 0%, #6366f1 100%);
+            color: white;
+            padding: 1.25rem 2rem;
+            border-radius: 8px;
+            font-weight: 700;
+            text-align: center;
+            box-shadow: var(--shadow-md);
+            min-width: 280px;
+        }
+
+        .fact-table .table-name {
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .fact-table .columns {
+            font-size: 0.8rem;
+            font-weight: 400;
+            text-align: left;
+            font-family: 'Fira Code', monospace;
+            background: rgba(0,0,0,0.2);
+            padding: 0.75rem;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+        }
+
+        .fact-table-factless {
+            background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
+        }
+
+        .dimension-row {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .dimension-table {
+            background: linear-gradient(135deg, var(--accent-emerald) 0%, #059669 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            min-width: 140px;
+            font-size: 0.9rem;
+        }
+
+        .connector-line {
+            width: 2px;
+            height: 30px;
+            background: var(--text-muted);
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        .comparison-table th {
+            background: var(--primary-navy);
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .comparison-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-light);
+            vertical-align: top;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        .comparison-table tr:hover {
+            background: #f1f5f9;
+        }
+
+        /* Data Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.85rem;
+            font-family: 'Fira Code', monospace;
+        }
+
+        .data-table th {
+            background: #475569;
+            color: white;
+            padding: 0.75rem 0.5rem;
+            text-align: left;
+            font-weight: 500;
+            font-size: 0.75rem;
+        }
+
+        .data-table td {
+            padding: 0.6rem 0.5rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .data-table tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        /* Code/Schema Display */
+        .schema-display {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 8px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .schema-display .keyword {
+            color: #93c5fd;
+        }
+
+        .schema-display .table-name {
+            color: #fbbf24;
+        }
+
+        .schema-display .column {
+            color: #a7f3d0;
+        }
+
+        .schema-display .comment {
+            color: #64748b;
+            font-style: italic;
+        }
+
+        /* Venn Diagram */
+        .venn-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+
+        .venn-diagram {
+            position: relative;
+            width: 400px;
+            height: 280px;
+        }
+
+        .venn-circle {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-align: center;
+            line-height: 1.3;
+        }
+
+        .venn-events {
+            background: rgba(37, 99, 235, 0.3);
+            border: 3px solid var(--primary-blue);
+            left: 0;
+            top: 40px;
+        }
+
+        .venn-conditions {
+            background: rgba(16, 185, 129, 0.3);
+            border: 3px solid var(--accent-emerald);
+            right: 0;
+            top: 40px;
+        }
+
+        .venn-overlap {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: var(--primary-navy);
+            text-align: center;
+            background: rgba(255,255,255,0.9);
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+
+        .venn-labels {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        /* Summary Box */
+        .summary-box {
+            background: linear-gradient(135deg, var(--primary-navy) 0%, #334155 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .summary-box h3 {
+            color: var(--accent-orange);
+            margin-top: 0;
+        }
+
+        .summary-box ul {
+            padding-left: 1.5rem;
+        }
+
+        .summary-box li {
+            margin-bottom: 0.75rem;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin-bottom: 1.25rem;
+            padding-left: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Highlight */
+        .highlight {
+            background: #fef3c7;
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+        }
+
+        /* Inline code */
+        code {
+            font-family: 'Fira Code', monospace;
+            background: #f1f5f9;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #7c3aed;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-events {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-conditions {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-factless {
+            background: #cffafe;
+            color: #0e7490;
+        }
+
+        /* Process Flow */
+        .process-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+
+        .process-step {
+            background: var(--primary-purple);
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .process-arrow {
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--primary-navy);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        footer p {
+            opacity: 0.8;
+            margin: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+
+            section {
+                padding: 1.5rem;
+            }
+
+            nav a {
+                padding: 0.75rem;
+                font-size: 0.8rem;
+            }
+
+            .dimension-row {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .venn-diagram {
+                width: 100%;
+                height: 350px;
+            }
+
+            .venn-circle {
+                width: 160px;
+                height: 160px;
+            }
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        section {
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Oxymoron Box */
+        .oxymoron-box {
+            background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%);
+            border: 2px dashed #a855f7;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            text-align: center;
+        }
+
+        .oxymoron-box h4 {
+            color: #7e22ce;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .oxymoron-term {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #7e22ce;
+            margin: 0.5rem 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <span class="chapter-label">Chapter 12</span>
+            <h1>Factless Fact Tables</h1>
+            <p class="subtitle">Understanding when and how to design fact tables that contain no facts — a powerful technique for tracking events and conditions in your data warehouse.</p>
+            <div class="mentor-note">
+                <strong>👋 From Your Senior Architect:</strong> Don't let the name confuse you — "factless fact tables" are incredibly useful! This chapter will teach you how to measure business processes even when there are no traditional numeric measurements. Master this, and you'll have a powerful tool in your dimensional modeling toolkit.
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <div class="nav-content">
+            <ul>
+                <li><a href="#overview" class="active">Overview</a></li>
+                <li><a href="#events">Events with No Facts</a></li>
+                <li><a href="#conditions">Conditions & Coverage</a></li>
+                <li><a href="#correlating">Correlating Events & Conditions</a></li>
+                <li><a href="#summary">Summary</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <!-- SECTION: Overview -->
+        <section id="overview">
+            <h2>What You'll Learn</h2>
+            
+            <div class="intro-box">
+                <h3>🎯 Chapter Objectives</h3>
+                <p>This chapter introduces a design technique that might seem paradoxical at first — a fact table with no facts! Despite its name, a factless fact table is incredibly useful for measuring certain business processes. By the end of this chapter, you'll know when to use them and how to design them.</p>
+            </div>
+
+            <div class="oxymoron-box">
+                <h4>The Paradox</h4>
+                <p class="oxymoron-term">"Factless Fact Table"</p>
+                <p>A fact table is named for the measurements it stores. So what happens when there are no measurements? You get an oxymoron — but also a powerful design technique!</p>
+            </div>
+
+            <p>In a dimensional design, the fact table is where process measurements are stored. These measurements are called facts — that's where the name comes from. Paradoxically, <strong>a fact table does not always require facts to measure a process</strong>.</p>
+
+            <div class="key-points">
+                <h4>📌 Two Types of Factless Fact Tables</h4>
+                <ul>
+                    <li><strong>Factless Fact Tables for Events</strong> <span class="badge badge-events">Events</span> — Record the occurrence of activities. Although no facts are stored, events can be counted to produce meaningful measurements.</li>
+                    <li><strong>Factless Fact Tables for Conditions</strong> <span class="badge badge-conditions">Conditions</span> — Capture important relationships between dimensions that are not part of business activities. Used to study eligibility, coverage, or assignments.</li>
+                </ul>
+            </div>
+
+            <div class="example-box">
+                <h4>Real-World Examples</h4>
+                <p><strong>Events without facts:</strong></p>
+                <ul>
+                    <li>Number of documents processed or approved</li>
+                    <li>Calls to a customer support center</li>
+                    <li>Impressions of an advertisement</li>
+                    <li>Attendance records</li>
+                </ul>
+                <p><strong>Conditions to capture:</strong></p>
+                <ul>
+                    <li>Eligibility of people for programs</li>
+                    <li>Assignment of salesreps to customers</li>
+                    <li>Active marketing programs for a product</li>
+                    <li>Special weather conditions in effect</li>
+                </ul>
+            </div>
+
+            <div class="tip-box">
+                <h4>Why This Matters</h4>
+                <p>Many business processes don't have obvious numeric measurements. Without factless fact tables, you'd be stuck trying to force these into inappropriate designs. This technique gives you the flexibility to model reality as it actually exists.</p>
+            </div>
+        </section>
+
+        <!-- SECTION: Events with No Facts -->
+        <section id="events">
+            <h2>Events with No Facts</h2>
+            
+            <p>Sometimes you need to track a business activity, but there appear to be no facts to measure. You can define the process, identify the fact table grain, and specify dimensions — but you can't find any numeric measurements.</p>
+
+            <div class="definition-box">
+                <h4>Don't Panic!</h4>
+                <p>This shouldn't stop you from designing a star schema. When the only measurement is the occurrence of events, you can design a <strong>factless fact table</strong>. Analysis is conducted by counting rows. The mere existence of a row constitutes a measurement.</p>
+            </div>
+
+            <h3>Nothing to Measure?</h3>
+            <p>For many business processes, the only measurement is the occurrence of events or activities. There are no dollar amounts to aggregate, no quantities to sum, no balances to average. Yet activities are happening — sometimes at a breakneck pace!</p>
+
+            <div class="example-box">
+                <h4>Examples of Countable Events</h4>
+                <ul>
+                    <li><strong>Document Processing:</strong> Contracts or applications are received, reviewed, rejected, etc. — measured by counting how many are handled by day, by activity type, by customer, by person doing the processing.</li>
+                    <li><strong>Customer Support:</strong> Service requests opened, closed, or processed — measured by representative, customer, product, and problem ticket.</li>
+                    <li><strong>Advertising:</strong> Count the number of impressions (exposures to an advertisement) across various dimensions.</li>
+                    <li><strong>Web Analytics:</strong> Page views or interface clicks.</li>
+                    <li><strong>Attendance:</strong> Schools and businesses track presence or absence.</li>
+                </ul>
+            </div>
+
+            <p>You might hear dimensional modelers say "no measurements exist" for these processes. <strong>This is not entirely true!</strong> Counts are legitimate and important measurements. It just happens that you don't need to store a fact to support counting.</p>
+
+            <div class="tip-box">
+                <h4>Key Insight</h4>
+                <p>The fact table may be factless, but the process IS measured. Counting is a valid form of measurement!</p>
+            </div>
+
+            <h3>The Factless Fact Table Design</h3>
+            <p>Like any other fact table, a factless fact table has a grain. The grain is defined such that <strong>each row represents an individual activity</strong>. Every row contains:</p>
+            <ul>
+                <li>Foreign keys that refer to the dimensional context of the activity</li>
+                <li>Perhaps one or more degenerate dimensions</li>
+                <li><strong>No facts</strong> — the presence of the row IS the measurement</li>
+            </ul>
+
+            <h4>Example: Customer Contact Tracking</h4>
+            <p>Suppose a business wants to measure customer contact to fine-tune activities and avoid contacting customers too frequently or infrequently. Contact happens through e-mail and telephone, can be inbound or outbound, and some outbound contacts may be automated (like newsletters).</p>
+
+            <!-- Factless Fact Table Diagram -->
+            <div class="diagram-container">
+                <div class="diagram-title">Figure 12-1: A Factless Fact Table for Customer Contact</div>
+                <div class="star-diagram">
+                    <div class="dimension-row">
+                        <div class="dimension-table">DAY</div>
+                        <div class="dimension-table">TIME</div>
+                        <div class="dimension-table">CUSTOMER</div>
+                        <div class="dimension-table">CONTACT_TYPE</div>
+                    </div>
+                    <div class="connector-line"></div>
+                    <div class="fact-table fact-table-factless">
+                        <div class="table-name">CONTACT_FACTS</div>
+                        <div class="columns">
+                            day_key (FK)<br>
+                            time_key (FK)<br>
+                            customer_key (FK)<br>
+                            contact_type_key (FK)<br>
+                            <em style="color: #94a3b8;">/* No facts! */</em>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p>The <code>CONTACT_TYPE</code> dimension captures the different types of contacts:</p>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>contact_type_key</th>
+                        <th>contact_channel</th>
+                        <th>automated</th>
+                        <th>direction</th>
+                        <th>description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>100</td><td>E-Mail</td><td>Automated</td><td>Outbound</td><td>Weekly Coupons</td></tr>
+                    <tr><td>101</td><td>E-Mail</td><td>Automated</td><td>Outbound</td><td>eNews Mailing</td></tr>
+                    <tr><td>102</td><td>E-Mail</td><td>Not Automated</td><td>Inbound</td><td>Tech Support</td></tr>
+                    <tr><td>103</td><td>E-Mail</td><td>Not Automated</td><td>Outbound</td><td>Tech Support</td></tr>
+                    <tr><td>104</td><td>Telephone</td><td>Not Automated</td><td>Outbound</td><td>Tech Support</td></tr>
+                    <tr><td>105</td><td>Telephone</td><td>Not Automated</td><td>Outbound</td><td>Tech Support</td></tr>
+                    <tr><td>106</td><td>Telephone</td><td>Not Automated</td><td>Inbound</td><td>Promotional Offer</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Using a Factless Fact Table</h3>
+            <p>Although no facts are stored, the factless fact table supports measurement by <strong>counting rows</strong>. Dimensions can filter or group the counts in useful ways.</p>
+
+            <div class="example-box">
+                <h4>Example Query: Count Customer Contacts</h4>
+                <p>How many times was John Smith contacted during January 2009?</p>
+            </div>
+
+            <div class="schema-display">
+<span class="keyword">SELECT</span> 
+   <span class="keyword">COUNT</span>( contact_facts.contact_type_key )  <span class="comment">/* Count any column */</span>
+<span class="keyword">FROM</span> 
+   day, 
+   customer, 
+   contact_facts 
+<span class="keyword">WHERE</span> 
+   customer.name = <span class="column">'John Smith'</span> <span class="keyword">AND</span>  
+   day.month = <span class="column">'January'</span> <span class="keyword">AND</span> 
+   day.year = <span class="column">2009</span> <span class="keyword">AND</span> 
+   day.day_key = contact_facts.day_key <span class="keyword">AND</span> 
+   customer.customer_key = contact_facts.customer_key
+            </div>
+
+            <p>This query returns a single number — the total contacts with John Smith during the month. You can enhance it by grouping:</p>
+
+            <div class="schema-display">
+<span class="keyword">SELECT</span> 
+   contact_type.contact_channel,
+   <span class="keyword">COUNT</span>( contact_facts.contact_type_key )  
+<span class="keyword">FROM</span> 
+   day, customer, contact_type, contact_facts 
+<span class="keyword">WHERE</span> 
+   <span class="comment">/* ... filters ... */</span>
+<span class="keyword">GROUP BY</span> 
+   contact_type.contact_channel
+            </div>
+
+            <p>This shows contacts broken down by "E-mail" and "Telephone". Adding the <code>direction</code> attribute would further group by "Inbound" and "Outbound".</p>
+
+            <div class="tip-box">
+                <h4>Key Point</h4>
+                <p>The events in a factless fact table can be aggregated by counting rows. <strong>Any column in the fact table can serve as the basis of the count</strong> — they'll all produce the same result.</p>
+            </div>
+
+            <h3>Adding a Fact (Optional)</h3>
+            <p>While not required, you can add a special fact that always contains the value <code>1</code>. This makes SQL easier to read and write, though it's functionally equivalent to counting any column.</p>
+
+            <!-- Factless with Fact Diagram -->
+            <div class="diagram-container">
+                <div class="diagram-title">Figure 12-2: Adding a Fact to the Factless Fact Table</div>
+                <div class="star-diagram">
+                    <div class="dimension-row">
+                        <div class="dimension-table">DAY</div>
+                        <div class="dimension-table">TIME</div>
+                        <div class="dimension-table">CUSTOMER</div>
+                        <div class="dimension-table">CONTACT_TYPE</div>
+                    </div>
+                    <div class="connector-line"></div>
+                    <div class="fact-table fact-table-factless">
+                        <div class="table-name">CONTACT_FACTS</div>
+                        <div class="columns">
+                            day_key (FK)<br>
+                            time_key (FK)<br>
+                            customer_key (FK)<br>
+                            contact_type_key (FK)<br>
+                            <strong style="color: #fde68a;">contact = 1</strong> <em style="color: #94a3b8;">/* Always 1 */</em>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p>Sample data with the added fact:</p>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>day_key</th>
+                        <th>time_key</th>
+                        <th>customer_key</th>
+                        <th>contact_type_key</th>
+                        <th>contact</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>27221</td><td>121</td><td>4622</td><td>101</td><td style="background:#dcfce7; font-weight:bold;">1</td></tr>
+                    <tr><td>27221</td><td>121</td><td>3722</td><td>101</td><td style="background:#dcfce7; font-weight:bold;">1</td></tr>
+                    <tr><td>27221</td><td>121</td><td>2828</td><td>101</td><td style="background:#dcfce7; font-weight:bold;">1</td></tr>
+                    <tr><td>27221</td><td>123</td><td>9281</td><td>102</td><td style="background:#dcfce7; font-weight:bold;">1</td></tr>
+                    <tr><td>27221</td><td>123</td><td>1928</td><td>104</td><td style="background:#dcfce7; font-weight:bold;">1</td></tr>
+                </tbody>
+            </table>
+
+            <p>Now queries can use <code>SUM(contact)</code> instead of <code>COUNT(*)</code>, which some find more intuitive:</p>
+
+            <div class="schema-display">
+<span class="keyword">SELECT</span> 
+   contact_type.contact_channel,
+   <span class="keyword">SUM</span>( contact_facts.contact )  <span class="comment">/* Sum of 1s = Count */</span>
+<span class="keyword">FROM</span> ...
+            </div>
+
+            <div class="summary-box">
+                <h3>🔑 Factless Fact Tables for Events — Key Takeaways</h3>
+                <ul>
+                    <li>Activities with no associated facts can be tracked in a factless fact table</li>
+                    <li>Each row is a set of foreign keys describing the dimensionality of an event</li>
+                    <li>The <strong>presence of a row constitutes a measurement</strong></li>
+                    <li>Count rows to measure the process — dimensions filter and group results</li>
+                    <li>Optionally add a fact with constant value <code>1</code> to simplify queries</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- SECTION: Conditions, Coverage, or Eligibility -->
+        <section id="conditions">
+            <h2>Conditions, Coverage, or Eligibility</h2>
+            
+            <p>Beyond tracking events, factless fact tables serve another important purpose: <strong>capturing conditions</strong>. These are relationships between dimensions that exist at a point in time, independent of any particular business activity.</p>
+
+            <div class="definition-box">
+                <h4>What is a "Condition"?</h4>
+                <p>A condition describes a state of affairs or relationship that exists over time. Unlike events (which happen instantaneously), conditions have duration — they're in effect from one point in time until another.</p>
+            </div>
+
+            <h3>Examples of Conditions</h3>
+            <ul>
+                <li><strong>Salesrep-Customer Assignment:</strong> Which salespeople are assigned to which customers?</li>
+                <li><strong>Marketing Promotions:</strong> Which products are currently part of which promotions?</li>
+                <li><strong>Program Eligibility:</strong> Which people are eligible for which programs?</li>
+                <li><strong>Resource Availability:</strong> Which facilities are available for use?</li>
+            </ul>
+
+            <h4>Example: Salesrep-Customer Assignments</h4>
+            <p>Consider tracking which salespeople are assigned to which customers. This isn't a transaction — it's a condition that exists over time. A row represents the assignment itself, not an event.</p>
+
+            <!-- Condition Fact Table Diagram -->
+            <div class="diagram-container">
+                <div class="diagram-title">Figure 12-3: A Factless Fact Table for Customer Assignments</div>
+                <div class="star-diagram">
+                    <div class="dimension-row">
+                        <div class="dimension-table">DAY<br><small>(effective)</small></div>
+                        <div class="dimension-table">DAY<br><small>(expiration)</small></div>
+                        <div class="dimension-table">SALESREP</div>
+                        <div class="dimension-table">CUSTOMER</div>
+                    </div>
+                    <div class="connector-line"></div>
+                    <div class="fact-table fact-table-factless">
+                        <div class="table-name">CUSTOMER_ASSIGNMENT_FACTS</div>
+                        <div class="columns">
+                            day_key_effective (FK)<br>
+                            day_key_expiration (FK)<br>
+                            salesrep_key (FK)<br>
+                            customer_key (FK)<br>
+                            <em style="color: #94a3b8;">/* No facts */</em>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p>Notice that this design includes <strong>two date dimensions</strong> — one for when the assignment becomes effective, and one for when it expires. This lets you track the duration of conditions.</p>
+
+            <div class="example-box">
+                <h4>Sample Data: Customer Assignments</h4>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>day_key_effective</th>
+                            <th>day_key_expiration</th>
+                            <th>salesrep_key</th>
+                            <th>customer_key</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1001 (Jan 1)</td><td>9999 (Forever)</td><td>45 (Jane Smith)</td><td>789 (Acme Corp)</td></tr>
+                        <tr><td>1015 (Jan 15)</td><td>1090 (Mar 31)</td><td>23 (Bob Jones)</td><td>456 (Beta Inc)</td></tr>
+                        <tr><td>1091 (Apr 1)</td><td>9999 (Forever)</td><td>45 (Jane Smith)</td><td>456 (Beta Inc)</td></tr>
+                    </tbody>
+                </table>
+                <p><em>Note: <code>day_key_expiration = 9999</code> represents "current" assignments with no end date yet.</em></p>
+            </div>
+
+            <div class="tip-box">
+                <h4>Why Not Use a Bridge Table?</h4>
+                <p>You might wonder why we don't just use a many-to-many relationship. The answer is that we want to track <strong>when</strong> assignments are in effect, not just that they exist. The date dimensions let us query "Who was assigned to this customer in Q1 2009?"</p>
+            </div>
+
+            <h3>Comparing Conditions with Events</h3>
+            <p>The real power of factless fact tables for conditions becomes apparent when you <strong>compare conditions with events</strong>. This reveals insights that neither alone could provide.</p>
+
+            <div class="example-box">
+                <h4>Business Questions That Require Both</h4>
+                <ul>
+                    <li>Which salesreps took orders from customers they weren't assigned to?</li>
+                    <li>Which assigned salesrep/customer pairs had no orders this quarter?</li>
+                    <li>How do promotion-eligible products compare to actual sales?</li>
+                    <li>Which eligible members didn't use their benefits?</li>
+                </ul>
+            </div>
+
+            <div class="venn-container">
+                <div class="venn-diagram">
+                    <div class="venn-circle venn-events">
+                        Orders<br>Placed
+                    </div>
+                    <div class="venn-circle venn-conditions">
+                        Assigned<br>Salesrep/<br>Customer<br>Pairs
+                    </div>
+                    <div class="venn-labels">
+                        <span style="color: var(--primary-blue);">Events (Orders)</span>
+                        <span style="color: var(--accent-emerald);">Conditions (Assignments)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="diagram-container">
+                <div class="diagram-title">Figure 12-4: Four Regions of Analysis</div>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Region</th>
+                            <th>Description</th>
+                            <th>Business Meaning</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="background:#dbeafe; font-weight:bold;">A (Events Only)</td>
+                            <td>Orders from salesrep/customer pairs <strong>without</strong> an assignment</td>
+                            <td>Possible assignment gaps or unauthorized sales</td>
+                        </tr>
+                        <tr>
+                            <td style="background:#dcfce7; font-weight:bold;">B (Conditions Only)</td>
+                            <td>Assigned pairs with <strong>no orders</strong></td>
+                            <td>Underperforming assignments needing attention</td>
+                        </tr>
+                        <tr>
+                            <td style="background:#fef3c7; font-weight:bold;">C (Overlap)</td>
+                            <td>Assigned pairs <strong>with orders</strong></td>
+                            <td>Working as expected!</td>
+                        </tr>
+                        <tr>
+                            <td style="background:#f3f4f6; font-weight:bold;">D (Neither)</td>
+                            <td>All other salesrep/customer combinations</td>
+                            <td>No assignment, no orders</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="warning-box">
+                <h4>Important Consideration</h4>
+                <p>Comparing conditions with events requires careful attention to time ranges. An assignment that was in effect during <em>any portion</em> of the period should be included. This can make queries complex — we'll cover techniques in the next section.</p>
+            </div>
+
+            <div class="summary-box">
+                <h3>🔑 Factless Fact Tables for Conditions — Key Takeaways</h3>
+                <ul>
+                    <li>Conditions capture relationships that exist over time, not instantaneous events</li>
+                    <li>Use effective/expiration date dimensions to track duration</li>
+                    <li>The real value comes from <strong>comparing conditions with events</strong></li>
+                    <li>This comparison reveals gaps, overlaps, and exceptions</li>
+                    <li>Also called "coverage tables" — they show what's covered/eligible/assigned</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- SECTION: Correlating Events and Conditions -->
+        <section id="correlating">
+            <h2>Correlating Events and Conditions</h2>
+            
+            <p>Now let's explore <strong>how to actually query</strong> the comparison between conditions and events. This is where things get interesting — and a bit complex!</p>
+
+            <h3>Three Approaches</h3>
+            <div class="key-points">
+                <h4>📌 Ways to Compare Events and Conditions</h4>
+                <ul>
+                    <li><strong>Set Operations (UNION, INTERSECT, MINUS)</strong> — Use SQL set operations to combine or compare results from two queries.</li>
+                    <li><strong>Correlated Subqueries</strong> — Use EXISTS or NOT EXISTS to find matching or non-matching records.</li>
+                    <li><strong>Precompute the Results</strong> — Build a derived star that contains the comparison, making queries simple.</li>
+                </ul>
+            </div>
+
+            <h3>Using Set Operations</h3>
+            <p>SQL set operations can compare results from two separate queries. To find assignments without orders (Region B from our Venn diagram), use <code>MINUS</code>:</p>
+
+            <div class="schema-display">
+<span class="comment">-- Query 1: Get all salesrep/customer assignments in Q1 2009</span>
+<span class="keyword">SELECT</span> 
+   assigned_rep.salesperson_name, 
+   assigned_customer.customer_name 
+<span class="keyword">FROM</span> 
+   salesrep <span class="keyword">ALIAS</span> assigned_rep, 
+   customer <span class="keyword">ALIAS</span> assigned_customer, 
+   day <span class="keyword">ALIAS</span> effective_day, 
+   day <span class="keyword">ALIAS</span> expiration_day, 
+   customer_assignment_facts 
+<span class="keyword">WHERE</span> 
+   effective_day.date <= <span class="column">'3/31/2009'</span> <span class="keyword">AND</span> 
+   expiration_day.date >= <span class="column">'1/1/2009'</span> <span class="keyword">AND</span> 
+   <span class="comment">...joins...</span>
+
+<span class="keyword">MINUS</span>
+
+<span class="comment">-- Query 2: Get all salesrep/customer orders in Q1 2009</span>
+<span class="keyword">SELECT</span> 
+   order_rep.salesperson_name, 
+   order_customer.customer_name 
+<span class="keyword">FROM</span> 
+   salesrep <span class="keyword">ALIAS</span> order_rep, 
+   customer <span class="keyword">ALIAS</span> order_customer, 
+   day <span class="keyword">ALIAS</span> order_day, 
+   order_facts 
+<span class="keyword">WHERE</span> 
+   order_day.date >= <span class="column">'1/1/2009'</span> <span class="keyword">AND</span> 
+   order_day.date <= <span class="column">'3/31/2009'</span> <span class="keyword">AND</span> 
+   <span class="comment">...joins...</span>
+            </div>
+
+            <div class="example-box">
+                <h4>Understanding MINUS</h4>
+                <p><code>MINUS</code> (called <code>EXCEPT</code> in some databases) returns rows from the first query that don't appear in the second. So this gives us:</p>
+                <p><strong>All assigned pairs</strong> − <strong>Assigned pairs with orders</strong> = <strong>Assigned pairs without orders</strong></p>
+            </div>
+
+            <p>You can also use <code>INTERSECT</code> to find assignments <em>with</em> orders, or reverse the <code>MINUS</code> to find orders from <em>non-assigned</em> pairs.</p>
+
+            <div class="tip-box">
+                <h4>Pro Tip: Numbering Time Periods</h4>
+                <p>Date range conditions like "effective during any part of Q1" can be tricky. Some designers add a <code>quarter_number</code> attribute to the date dimension (1, 2, 3, ...) so conditions become simpler:</p>
+                <div class="schema-display">
+<span class="comment">-- Instead of complex date math:</span>
+effective_day.quarter_num <= 15 <span class="keyword">AND</span> 
+expiration_day.quarter_num >= 15
+                </div>
+            </div>
+
+            <h3>Using Correlated Subqueries</h3>
+            <p>Another approach uses <code>NOT EXISTS</code> or <code>EXISTS</code> with a correlated subquery. This can be more flexible when you need additional information from one of the tables.</p>
+
+            <div class="schema-display">
+<span class="comment">-- Find assignments with no orders using correlated subquery</span>
+<span class="keyword">SELECT</span> 
+   assigned_rep.salesperson_name, 
+   assigned_customer.customer_name 
+<span class="keyword">FROM</span> 
+   salesrep <span class="keyword">ALIAS</span> assigned_rep, 
+   customer <span class="keyword">ALIAS</span> assigned_customer, 
+   day <span class="keyword">ALIAS</span> effective_day, 
+   day <span class="keyword">ALIAS</span> expiration_day, 
+   customer_assignment_facts 
+<span class="keyword">WHERE</span> 
+   effective_day.date <= <span class="column">'3/31/2009'</span> <span class="keyword">AND</span> 
+   expiration_day.date >= <span class="column">'1/1/2009'</span> <span class="keyword">AND</span> 
+   <span class="comment">...joins...</span> 
+   <span class="keyword">AND NOT EXISTS</span> (
+      <span class="comment">-- Subquery: Look for orders</span>
+      <span class="keyword">SELECT</span> * 
+      <span class="keyword">FROM</span> 
+         salesrep <span class="keyword">ALIAS</span> order_rep, 
+         customer <span class="keyword">ALIAS</span> order_customer, 
+         day <span class="keyword">ALIAS</span> order_day, 
+         order_facts 
+      <span class="keyword">WHERE</span> 
+         order_day.date >= <span class="column">'1/1/2009'</span> <span class="keyword">AND</span> 
+         order_day.date <= <span class="column">'3/31/2009'</span> <span class="keyword">AND</span> 
+         <span class="comment">...joins...</span> <span class="keyword">AND</span>
+         <span class="comment">-- Correlation: Match natural keys</span>
+         <span style="color:#fde68a;">order_customer.customer_id = assigned_customer.customer_id</span> <span class="keyword">AND</span> 
+         <span style="color:#fde68a;">order_rep.salesrep_id = assigned_rep.salesrep_id</span>
+   )
+            </div>
+
+            <div class="warning-box">
+                <h4>Use Natural Keys for Correlation!</h4>
+                <p>The correlation should use <strong>natural keys</strong>, not surrogate keys. Why? If either entity has undergone a Type 2 slow change, there may be multiple surrogate keys for the same real-world entity. Natural keys ensure you're matching the same customer/salesrep regardless of dimensional changes.</p>
+            </div>
+
+            <h3>Precompute the Results</h3>
+            <p>The set operations and correlated subqueries are complex. They're hard to write, hard to read, and may perform poorly on large datasets. Sometimes the best solution is to <strong>compute the results in advance</strong>.</p>
+
+            <div class="example-box">
+                <h4>Build a Derived Star</h4>
+                <p>Create a new star schema that holds the pre-computed comparison. For "assignments without orders," this derived star would have:</p>
+                <ul>
+                    <li>A period dimension (the summarized period)</li>
+                    <li>A salesperson dimension</li>
+                    <li>A customer dimension</li>
+                    <li>Optionally: facts like total assignment days, potential revenue, etc.</li>
+                </ul>
+            </div>
+
+            <p>This approach moves complexity to ETL time, making queries trivially simple. It's an example of a <strong>derived schema</strong> (covered in detail in Chapter 14).</p>
+
+            <div class="tip-box">
+                <h4>When to Precompute</h4>
+                <ul>
+                    <li>When queries are too complex for end users</li>
+                    <li>When BI tools can't generate the required SQL</li>
+                    <li>When performance is unacceptable</li>
+                    <li>When the comparison is frequently needed</li>
+                </ul>
+            </div>
+
+            <h3>Slowly Changing Dimensions and Conditions</h3>
+            <p>When dimensions in a condition star undergo <strong>Type 2 slow changes</strong>, these changes will require new fact table rows.</p>
+
+            <div class="example-box">
+                <h4>Example: Customer Name Change</h4>
+                <p>Suppose Lawrence Falconi is assigned to ABC Holdings. Later, ABC Holdings changes its name to ABC International (a Type 2 change creates a new dimension row). The new version must also be associated with Lawrence:</p>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>effective_day</th>
+                            <th>expiration_day</th>
+                            <th>salesrep_key</th>
+                            <th>customer_key</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1001</td>
+                            <td>1089</td>
+                            <td>45 (Falconi)</td>
+                            <td>789 (ABC Holdings)</td>
+                            <td>Original assignment</td>
+                        </tr>
+                        <tr style="background:#dcfce7;">
+                            <td>1090</td>
+                            <td>9999</td>
+                            <td>45 (Falconi)</td>
+                            <td>790 (ABC International)</td>
+                            <td>New row for Type 2 change</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="warning-box">
+                <h4>Complications for Queries</h4>
+                <p>Type 2 changes complicate comparison queries. If names are used for matching, an old assignment name won't match a new order name. <strong>Always use natural keys</strong> in correlation, not names or surrogate keys that might change.</p>
+            </div>
+
+            <div class="summary-box">
+                <h3>🔑 Correlating Events and Conditions — Key Takeaways</h3>
+                <ul>
+                    <li><strong>Set Operations:</strong> Use MINUS/EXCEPT, INTERSECT, UNION to compare query results</li>
+                    <li><strong>Correlated Subqueries:</strong> Use EXISTS/NOT EXISTS for more flexibility</li>
+                    <li><strong>Precomputed Results:</strong> Build a derived star for simple queries and good performance</li>
+                    <li>Always use <strong>natural keys</strong> for correlation to handle Type 2 changes correctly</li>
+                    <li>Type 2 changes in condition dimensions require new fact table rows</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- SECTION: Summary -->
+        <section id="summary">
+            <h2>Chapter Summary</h2>
+
+            <div class="intro-box">
+                <h3>🎓 What You've Learned</h3>
+                <p>Factless fact tables may have a paradoxical name, but they're a powerful and essential technique. You now know when to use them and how to design them for both events and conditions.</p>
+            </div>
+
+            <h3>Key Points to Remember</h3>
+
+            <div class="key-points">
+                <h4>📌 Factless Fact Tables for Events</h4>
+                <ul>
+                    <li>Some processes are measured <strong>only by counting events</strong> or activities</li>
+                    <li>These can be modeled with a fact table whose grain is a single activity — <strong>no facts required</strong></li>
+                    <li>Analysis is conducted by <strong>counting fact table rows</strong></li>
+                    <li>Dimensions filter, group, sort, and drive subtotals</li>
+                    <li>A fact with constant value <code>1</code> can be added to simplify SQL</li>
+                </ul>
+            </div>
+
+            <div class="key-points">
+                <h4>📌 Factless Fact Tables for Conditions</h4>
+                <ul>
+                    <li>Some important relationships don't correspond to a business activity</li>
+                    <li>Examples: eligibility, coverage, assignments, promotions</li>
+                    <li>Conditions are modeled using a factless fact table with effective/expiration dates</li>
+                    <li>The real power comes from <strong>comparing conditions with activities</strong></li>
+                </ul>
+            </div>
+
+            <div class="key-points">
+                <h4>📌 Correlating Events and Conditions</h4>
+                <ul>
+                    <li>Use <strong>set operations</strong> (MINUS, INTERSECT) for simple comparisons</li>
+                    <li>Use <strong>correlated subqueries</strong> when you need extra flexibility</li>
+                    <li><strong>Precompute results</strong> in a derived star for simplicity and performance</li>
+                    <li>Always use <strong>natural keys</strong> to handle Type 2 slow changes correctly</li>
+                    <li>Type 2 changes generate new rows in condition fact tables</li>
+                </ul>
+            </div>
+
+            <h3>Final Advice from Your Senior Architect</h3>
+
+            <div class="mentor-note" style="background: rgba(124, 58, 237, 0.1); border-left-color: var(--primary-purple);">
+                <p><strong>🏆 Remember these principles:</strong></p>
+                <ol>
+                    <li><strong>Don't be fooled by "no measurements."</strong> If you can count events, you have a measurement. Design the factless fact table!</li>
+                    <li><strong>Conditions are relationships, not events.</strong> They capture "what was true" rather than "what happened."</li>
+                    <li><strong>The magic is in the comparison.</strong> Conditions alone are useful, but comparing them with events reveals the most valuable insights.</li>
+                    <li><strong>Consider your users.</strong> If queries are too complex, precompute the results into a derived star.</li>
+                    <li><strong>Natural keys are your friend.</strong> They survive Type 2 changes and make correlations reliable.</li>
+                </ol>
+            </div>
+
+            <h3>Quick Reference: When to Use Factless Fact Tables</h3>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Scenario</th>
+                        <th>Use This</th>
+                        <th>Example</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Track events with no numeric measurements</td>
+                        <td><span class="badge badge-events">Factless for Events</span></td>
+                        <td>Page views, attendance, support calls</td>
+                    </tr>
+                    <tr>
+                        <td>Capture relationships/eligibility over time</td>
+                        <td><span class="badge badge-conditions">Factless for Conditions</span></td>
+                        <td>Salesrep assignments, program eligibility</td>
+                    </tr>
+                    <tr>
+                        <td>Find what didn't happen (negative analysis)</td>
+                        <td><span class="badge badge-conditions">Conditions</span> vs <span class="badge badge-events">Events</span></td>
+                        <td>Eligible but didn't participate, assigned but no sales</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Further Reading</h3>
+            <p>To deepen your understanding of factless fact tables, explore these resources:</p>
+
+            <h4>Factless Fact Tables for Activities</h4>
+            <ul>
+                <li><em>The Data Warehouse Lifecycle Toolkit, 2nd Ed.</em> (Kimball et al.) — Chapter 6 includes an attendance example</li>
+                <li><em>The Data Warehouse Toolkit, 2nd Ed.</em> (Kimball & Ross) — Chapter 12 covers attendance with absences and student course registrations</li>
+                <li><em>Mastering Data Warehouse Aggregates</em> (Adamson) — Chapter 8 explains how aggregates of factless fact tables are <em>not</em> factless</li>
+            </ul>
+
+            <h4>Factless Fact Tables for Conditions</h4>
+            <ul>
+                <li><em>The Data Warehouse Toolkit</em> — Chapter 12 covers marketing promotions as a factless coverage table</li>
+                <li><em>The Data Warehouse Toolkit</em> — Chapter 12 also covers resource availability/facility utilization</li>
+                <li><em>Mastering Data Warehouse Aggregates</em> — Chapter 8 explains why aggregating conditions typically destroys meaning</li>
+            </ul>
+
+            <div class="tip-box">
+                <h4>Note on Terminology</h4>
+                <p>Kimball and Ross refer to factless fact tables that describe conditions, coverage, or eligibility as <strong>"coverage tables"</strong>. You may encounter this term in their books and other materials.</p>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Chapter 12 Manual — Based on "Star Schema: The Complete Reference" by Christopher Adamson</p>
+        <p style="font-size: 0.9rem; margin-top: 0.5rem; opacity: 0.7;">Created for junior data modelers by your senior architect 👨‍💻</p>
+    </footer>
+
+    <script>
+        // Simple navigation highlighting on scroll
+        document.addEventListener('DOMContentLoaded', function() {
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('nav a');
+            
+            function updateNav() {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop - 100;
+                    if (pageYOffset >= sectionTop) {
+                        current = section.getAttribute('id');
+                    }
+                });
+                
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === '#' + current) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+            
+            window.addEventListener('scroll', updateNav);
+            updateNav();
+        });
+    </script>
+</body>
+</html>
