@@ -828,6 +828,228 @@
             </table>
             <p><em>Notice: Only 9 rows for 2 weeks — rows exist only when activity occurs. This is sparsity in action.</em></p>
 
+            <!-- DETAILED EXAMPLES SECTION -->
+            <h3>🏪 Real-World Example: E-Commerce Retail Sales</h3>
+            <p>Let's walk through a complete example of designing a transaction fact table for an online retailer. This example shows how you'd model order transactions for a company like an online bookstore.</p>
+
+            <div class="example-box">
+                <h4>Business Scenario: BookMart Online</h4>
+                <p><strong>BookMart</strong> is an online bookstore that sells books, e-books, and audiobooks. They want to analyze:</p>
+                <ul>
+                    <li>Daily sales by product category and author</li>
+                    <li>Revenue by customer segment and region</li>
+                    <li>Promotional effectiveness</li>
+                    <li>Shipping costs and profit margins</li>
+                </ul>
+            </div>
+
+            <h4>Step 1: Define the Grain</h4>
+            <p>The grain is: <strong>"One row per order line item"</strong>. This means if a customer orders 3 different books in one order, we'll have 3 rows in our fact table.</p>
+
+            <div class="diagram-container">
+                <div class="diagram-title">BookMart Sales Transaction Star Schema</div>
+                <div class="star-diagram">
+                    <div class="dimension-row">
+                        <div class="dimension-table">DATE_DIM</div>
+                        <div class="dimension-table">CUSTOMER_DIM</div>
+                        <div class="dimension-table">PRODUCT_DIM</div>
+                        <div class="dimension-table">PROMOTION_DIM</div>
+                    </div>
+                    <div class="connector-line"></div>
+                    <div class="fact-table">
+                        <div class="table-name">ORDER_LINE_FACTS</div>
+                        <div class="columns">
+                            date_key (FK)<br>
+                            customer_key (FK)<br>
+                            product_key (FK)<br>
+                            promotion_key (FK)<br>
+                            shipping_method_key (FK)<br>
+                            order_id (DD)<br>
+                            line_number (DD)<br>
+                            ─────────────────────<br>
+                            <strong>quantity_sold</strong><br>
+                            <strong>unit_price</strong><br>
+                            <strong>discount_amount</strong><br>
+                            <strong>net_sales_amount</strong><br>
+                            <strong>cost_amount</strong><br>
+                            <strong>gross_profit</strong><br>
+                            <strong>shipping_cost</strong>
+                        </div>
+                    </div>
+                    <div class="connector-line"></div>
+                    <div class="dimension-row">
+                        <div class="dimension-table">SHIPPING_METHOD_DIM</div>
+                    </div>
+                </div>
+            </div>
+
+            <h4>Step 2: Sample Data</h4>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>date_key</th>
+                        <th>customer_key</th>
+                        <th>product_key</th>
+                        <th>order_id</th>
+                        <th>quantity</th>
+                        <th>unit_price</th>
+                        <th>discount</th>
+                        <th>net_sales</th>
+                        <th>cost</th>
+                        <th>gross_profit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>20240115</td><td>1042</td><td>5521</td><td>ORD-78901</td><td>2</td><td>$24.99</td><td>$5.00</td><td>$44.98</td><td>$20.00</td><td>$24.98</td></tr>
+                    <tr><td>20240115</td><td>1042</td><td>3302</td><td>ORD-78901</td><td>1</td><td>$15.99</td><td>$0.00</td><td>$15.99</td><td>$8.50</td><td>$7.49</td></tr>
+                    <tr><td>20240115</td><td>2156</td><td>5521</td><td>ORD-78902</td><td>1</td><td>$24.99</td><td>$2.50</td><td>$22.49</td><td>$10.00</td><td>$12.49</td></tr>
+                    <tr><td>20240116</td><td>3089</td><td>8891</td><td>ORD-78903</td><td>3</td><td>$9.99</td><td>$0.00</td><td>$29.97</td><td>$15.00</td><td>$14.97</td></tr>
+                    <tr><td>20240116</td><td>1042</td><td>4410</td><td>ORD-78904</td><td>1</td><td>$34.99</td><td>$7.00</td><td>$27.99</td><td>$18.00</td><td>$9.99</td></tr>
+                </tbody>
+            </table>
+            <p><em>Notice: Order ORD-78901 has 2 line items (2 rows). Each row is fully independent and additive.</em></p>
+
+            <h4>Step 3: SQL Queries You Can Write</h4>
+            <div class="schema-display">
+<span class="keyword">-- Query 1: Total sales by product category for January 2024</span>
+<span class="keyword">SELECT</span> 
+    p.category_name,
+    <span class="keyword">SUM</span>(f.quantity_sold) <span class="keyword">AS</span> total_units,
+    <span class="keyword">SUM</span>(f.net_sales_amount) <span class="keyword">AS</span> total_revenue,
+    <span class="keyword">SUM</span>(f.gross_profit) <span class="keyword">AS</span> total_profit
+<span class="keyword">FROM</span> <span class="table-name">order_line_facts</span> f
+<span class="keyword">JOIN</span> <span class="table-name">product_dim</span> p <span class="keyword">ON</span> f.product_key = p.product_key
+<span class="keyword">JOIN</span> <span class="table-name">date_dim</span> d <span class="keyword">ON</span> f.date_key = d.date_key
+<span class="keyword">WHERE</span> d.year_month = '2024-01'
+<span class="keyword">GROUP BY</span> p.category_name
+<span class="keyword">ORDER BY</span> total_revenue <span class="keyword">DESC</span>;
+            </div>
+
+            <div class="schema-display">
+<span class="keyword">-- Query 2: Promotional effectiveness analysis</span>
+<span class="keyword">SELECT</span> 
+    pr.promotion_name,
+    pr.discount_type,
+    <span class="keyword">COUNT</span>(<span class="keyword">DISTINCT</span> f.order_id) <span class="keyword">AS</span> orders_using_promo,
+    <span class="keyword">SUM</span>(f.discount_amount) <span class="keyword">AS</span> total_discounts_given,
+    <span class="keyword">SUM</span>(f.net_sales_amount) <span class="keyword">AS</span> revenue_with_promo,
+    <span class="keyword">SUM</span>(f.gross_profit) <span class="keyword">AS</span> profit_with_promo
+<span class="keyword">FROM</span> <span class="table-name">order_line_facts</span> f
+<span class="keyword">JOIN</span> <span class="table-name">promotion_dim</span> pr <span class="keyword">ON</span> f.promotion_key = pr.promotion_key
+<span class="keyword">WHERE</span> pr.promotion_key != 0  <span class="keyword">-- Exclude "No Promotion"</span>
+<span class="keyword">GROUP BY</span> pr.promotion_name, pr.discount_type;
+            </div>
+
+            <div class="tip-box">
+                <h4>Why These Queries Work</h4>
+                <p>Because all facts are <strong>fully additive</strong>, we can freely SUM them across any dimension. The margin rate isn't stored directly — instead, we store <code>net_sales_amount</code> and <code>gross_profit</code>, then calculate margin after aggregation:</p>
+                <code>Margin Rate = SUM(gross_profit) / SUM(net_sales_amount)</code>
+            </div>
+
+            <h3>🏥 Real-World Example: Healthcare Patient Visits</h3>
+            <p>Transaction fact tables aren't just for sales! Here's how a hospital might track patient visits:</p>
+
+            <div class="example-box">
+                <h4>Business Scenario: Regional Medical Center</h4>
+                <p>A hospital wants to analyze patient visits to understand:</p>
+                <ul>
+                    <li>Visit volumes by department and time of day</li>
+                    <li>Average treatment costs by diagnosis</li>
+                    <li>Doctor workload and patient outcomes</li>
+                    <li>Insurance billing patterns</li>
+                </ul>
+            </div>
+
+            <div class="diagram-container">
+                <div class="diagram-title">Patient Visit Transaction Fact Table</div>
+                <div class="star-diagram">
+                    <div class="dimension-row">
+                        <div class="dimension-table">DATE_DIM</div>
+                        <div class="dimension-table">TIME_DIM</div>
+                        <div class="dimension-table">PATIENT_DIM</div>
+                        <div class="dimension-table">DOCTOR_DIM</div>
+                    </div>
+                    <div class="connector-line"></div>
+                    <div class="fact-table">
+                        <div class="table-name">PATIENT_VISIT_FACTS</div>
+                        <div class="columns">
+                            date_key (FK)<br>
+                            time_key (FK)<br>
+                            patient_key (FK)<br>
+                            doctor_key (FK)<br>
+                            department_key (FK)<br>
+                            diagnosis_key (FK)<br>
+                            insurance_key (FK)<br>
+                            visit_id (DD)<br>
+                            ─────────────────────<br>
+                            <strong>visit_duration_minutes</strong><br>
+                            <strong>treatment_cost</strong><br>
+                            <strong>medication_cost</strong><br>
+                            <strong>lab_test_cost</strong><br>
+                            <strong>insurance_covered_amount</strong><br>
+                            <strong>patient_copay_amount</strong>
+                        </div>
+                    </div>
+                    <div class="connector-line"></div>
+                    <div class="dimension-row">
+                        <div class="dimension-table">DEPARTMENT_DIM</div>
+                        <div class="dimension-table">DIAGNOSIS_DIM</div>
+                        <div class="dimension-table">INSURANCE_DIM</div>
+                    </div>
+                </div>
+            </div>
+
+            <h4>Sample Healthcare Data</h4>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Visit Date</th>
+                        <th>Department</th>
+                        <th>Diagnosis</th>
+                        <th>Duration (min)</th>
+                        <th>Treatment Cost</th>
+                        <th>Insurance Paid</th>
+                        <th>Patient Copay</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>2024-01-15</td><td>Emergency</td><td>Fracture</td><td>180</td><td>$2,450.00</td><td>$1,960.00</td><td>$490.00</td></tr>
+                    <tr><td>2024-01-15</td><td>Cardiology</td><td>Hypertension</td><td>45</td><td>$350.00</td><td>$280.00</td><td>$70.00</td></tr>
+                    <tr><td>2024-01-15</td><td>Pediatrics</td><td>Flu</td><td>30</td><td>$175.00</td><td>$140.00</td><td>$35.00</td></tr>
+                    <tr><td>2024-01-16</td><td>Emergency</td><td>Appendicitis</td><td>420</td><td>$8,500.00</td><td>$6,800.00</td><td>$1,700.00</td></tr>
+                    <tr><td>2024-01-16</td><td>Dermatology</td><td>Eczema</td><td>25</td><td>$125.00</td><td>$100.00</td><td>$25.00</td></tr>
+                </tbody>
+            </table>
+
+            <div class="schema-display">
+<span class="keyword">-- Healthcare Query: Department workload and revenue analysis</span>
+<span class="keyword">SELECT</span> 
+    dept.department_name,
+    <span class="keyword">COUNT</span>(*) <span class="keyword">AS</span> total_visits,
+    <span class="keyword">AVG</span>(f.visit_duration_minutes) <span class="keyword">AS</span> avg_visit_duration,
+    <span class="keyword">SUM</span>(f.treatment_cost) <span class="keyword">AS</span> total_revenue,
+    <span class="keyword">SUM</span>(f.insurance_covered_amount) <span class="keyword">AS</span> insurance_revenue,
+    <span class="keyword">SUM</span>(f.patient_copay_amount) <span class="keyword">AS</span> patient_revenue
+<span class="keyword">FROM</span> <span class="table-name">patient_visit_facts</span> f
+<span class="keyword">JOIN</span> <span class="table-name">department_dim</span> dept <span class="keyword">ON</span> f.department_key = dept.department_key
+<span class="keyword">JOIN</span> <span class="table-name">date_dim</span> d <span class="keyword">ON</span> f.date_key = d.date_key
+<span class="keyword">WHERE</span> d.year_month = '2024-01'
+<span class="keyword">GROUP BY</span> dept.department_name
+<span class="keyword">ORDER BY</span> total_visits <span class="keyword">DESC</span>;
+            </div>
+
+            <div class="key-points">
+                <h4>📌 Transaction Fact Table Design Checklist</h4>
+                <ul>
+                    <li>✅ <strong>Define the grain clearly</strong> — What does one row represent?</li>
+                    <li>✅ <strong>Identify all dimensions</strong> — Who, what, when, where, why, how?</li>
+                    <li>✅ <strong>Keep facts additive</strong> — Break ratios into components</li>
+                    <li>✅ <strong>Use surrogate keys</strong> — For dimension table relationships</li>
+                    <li>✅ <strong>Include degenerate dimensions</strong> — Order ID, invoice number, etc.</li>
+                    <li>✅ <strong>Remember sparsity</strong> — Only rows for actual events</li>
+                </ul>
+            </div>
+
             <div class="summary-box">
                 <h3>🔑 Transaction Fact Table Key Takeaways</h3>
                 <ul>
@@ -1072,6 +1294,281 @@
             <div class="tip-box">
                 <h4>Important Rule for Type 2 Changes</h4>
                 <p>A periodic snapshot records <strong>only one row for each combination of natural keys</strong> in the dimensions that define its grain. When a dimension undergoes a Type 2 slow change (creating multiple rows for the same entity), the snapshot should only reference the version that was current at snapshot time. Recording more than one would cause double-counting!</p>
+            </div>
+
+            <!-- DETAILED EXAMPLES SECTION -->
+            <h3>📦 Real-World Example: Retail Inventory Management</h3>
+            <p>One of the most common uses of periodic snapshots is inventory tracking. Let's design a complete inventory snapshot for a retail chain.</p>
+
+            <div class="example-box">
+                <h4>Business Scenario: MegaMart Retail Chain</h4>
+                <p><strong>MegaMart</strong> operates 150 stores and needs to track inventory levels to:</p>
+                <ul>
+                    <li>Monitor stock levels across all stores and products</li>
+                    <li>Identify stockouts and overstock situations</li>
+                    <li>Calculate inventory turnover rates</li>
+                    <li>Plan reordering and warehouse distribution</li>
+                </ul>
+            </div>
+
+            <h4>Step 1: Define the Grain</h4>
+            <p>The grain is: <strong>"Daily snapshot of inventory quantity for each product at each store location."</strong></p>
+
+            <div class="diagram-container">
+                <div class="diagram-title">MegaMart Daily Inventory Snapshot Star Schema</div>
+                <div class="star-diagram">
+                    <div class="dimension-row">
+                        <div class="dimension-table">DATE_DIM</div>
+                        <div class="dimension-table">PRODUCT_DIM</div>
+                        <div class="dimension-table">STORE_DIM</div>
+                        <div class="dimension-table">WAREHOUSE_DIM</div>
+                    </div>
+                    <div class="connector-line"></div>
+                    <div class="fact-table">
+                        <div class="table-name">INVENTORY_DAILY_SNAPSHOT</div>
+                        <div class="columns">
+                            date_key (FK)<br>
+                            product_key (FK)<br>
+                            store_key (FK)<br>
+                            warehouse_key (FK)<br>
+                            ─────────────────────<br>
+                            <strong>quantity_on_hand</strong> (semi-additive)<br>
+                            <strong>quantity_on_order</strong> (semi-additive)<br>
+                            <strong>quantity_reserved</strong> (semi-additive)<br>
+                            <strong>days_supply</strong> (non-additive)<br>
+                            <strong>inventory_value_cost</strong> (semi-additive)<br>
+                            <strong>inventory_value_retail</strong> (semi-additive)<br>
+                            ─────────────────────<br>
+                            <strong>units_received</strong> (additive)<br>
+                            <strong>units_sold</strong> (additive)<br>
+                            <strong>units_returned</strong> (additive)<br>
+                            <strong>units_damaged</strong> (additive)
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h4>Step 2: Understanding Semi-Additive vs. Additive Facts</h4>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Fact Type</th>
+                        <th>Examples</th>
+                        <th>Can Sum Across Stores?</th>
+                        <th>Can Sum Across Time?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Semi-Additive</strong></td>
+                        <td>quantity_on_hand, inventory_value</td>
+                        <td>✅ Yes</td>
+                        <td>❌ No — use AVG, MIN, MAX</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Fully Additive</strong></td>
+                        <td>units_sold, units_received</td>
+                        <td>✅ Yes</td>
+                        <td>✅ Yes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Non-Additive</strong></td>
+                        <td>days_supply</td>
+                        <td>❌ No</td>
+                        <td>❌ No</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>Step 3: Sample Inventory Data (Single Product, Single Store)</h4>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Product</th>
+                        <th>Store</th>
+                        <th>Qty On Hand</th>
+                        <th>Qty On Order</th>
+                        <th>Units Sold</th>
+                        <th>Units Received</th>
+                        <th>Inventory Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>2024-01-15</td><td>Widget-A</td><td>Store #42</td><td>150</td><td>200</td><td>12</td><td>0</td><td>$3,750.00</td></tr>
+                    <tr><td>2024-01-16</td><td>Widget-A</td><td>Store #42</td><td>138</td><td>200</td><td>15</td><td>0</td><td>$3,450.00</td></tr>
+                    <tr><td>2024-01-17</td><td>Widget-A</td><td>Store #42</td><td>123</td><td>200</td><td>18</td><td>0</td><td>$3,075.00</td></tr>
+                    <tr><td>2024-01-18</td><td>Widget-A</td><td>Store #42</td><td>305</td><td>0</td><td>8</td><td>200</td><td>$7,625.00</td></tr>
+                    <tr><td>2024-01-19</td><td>Widget-A</td><td>Store #42</td><td>285</td><td>0</td><td>20</td><td>0</td><td>$7,125.00</td></tr>
+                    <tr><td>2024-01-20</td><td>Widget-A</td><td>Store #42</td><td>275</td><td>0</td><td>10</td><td>0</td><td>$6,875.00</td></tr>
+                    <tr><td>2024-01-21</td><td>Widget-A</td><td>Store #42</td><td>250</td><td>0</td><td>25</td><td>0</td><td>$6,250.00</td></tr>
+                </tbody>
+            </table>
+            <p><em>Notice: One row per day (DENSE), even though inventory only changed on some days. Also notice that <code>units_received</code> on 1/18 is 200, matching the <code>qty_on_order</code> from previous days.</em></p>
+
+            <h4>Step 4: SQL Queries for Inventory Analysis</h4>
+            <div class="schema-display">
+<span class="keyword">-- Query 1: Total inventory value across all stores for a specific date</span>
+<span class="keyword">-- This works because inventory_value IS additive across stores</span>
+<span class="keyword">SELECT</span> 
+    d.full_date,
+    p.category_name,
+    <span class="keyword">SUM</span>(f.quantity_on_hand) <span class="keyword">AS</span> total_units,
+    <span class="keyword">SUM</span>(f.inventory_value_cost) <span class="keyword">AS</span> total_value
+<span class="keyword">FROM</span> <span class="table-name">inventory_daily_snapshot</span> f
+<span class="keyword">JOIN</span> <span class="table-name">date_dim</span> d <span class="keyword">ON</span> f.date_key = d.date_key
+<span class="keyword">JOIN</span> <span class="table-name">product_dim</span> p <span class="keyword">ON</span> f.product_key = p.product_key
+<span class="keyword">WHERE</span> d.full_date = '2024-01-21'
+<span class="keyword">GROUP BY</span> d.full_date, p.category_name;
+            </div>
+
+            <div class="warning-box">
+                <h4>Wrong Query Alert!</h4>
+                <p>The following query is <strong>INCORRECT</strong> — it sums inventory across time:</p>
+            </div>
+
+            <div class="schema-display" style="background: #7f1d1d;">
+<span class="keyword">-- ❌ WRONG! This sums inventory across days</span>
+<span class="keyword">SELECT</span> 
+    p.product_name,
+    <span class="keyword">SUM</span>(f.quantity_on_hand) <span class="keyword">AS</span> total_inventory  <span class="keyword">-- WRONG!</span>
+<span class="keyword">FROM</span> <span class="table-name">inventory_daily_snapshot</span> f
+<span class="keyword">JOIN</span> <span class="table-name">product_dim</span> p <span class="keyword">ON</span> f.product_key = p.product_key
+<span class="keyword">JOIN</span> <span class="table-name">date_dim</span> d <span class="keyword">ON</span> f.date_key = d.date_key
+<span class="keyword">WHERE</span> d.year_month = '2024-01'
+<span class="keyword">GROUP BY</span> p.product_name;
+<span class="keyword">-- This would give you 150+138+123+305+... = 1,526 units</span>
+<span class="keyword">-- But you never had 1,526 units!</span>
+            </div>
+
+            <div class="schema-display">
+<span class="keyword">-- ✅ CORRECT: Use AVG for average inventory over time</span>
+<span class="keyword">SELECT</span> 
+    p.product_name,
+    <span class="keyword">AVG</span>(f.quantity_on_hand) <span class="keyword">AS</span> avg_daily_inventory,
+    <span class="keyword">MIN</span>(f.quantity_on_hand) <span class="keyword">AS</span> min_inventory,
+    <span class="keyword">MAX</span>(f.quantity_on_hand) <span class="keyword">AS</span> max_inventory
+<span class="keyword">FROM</span> <span class="table-name">inventory_daily_snapshot</span> f
+<span class="keyword">JOIN</span> <span class="table-name">product_dim</span> p <span class="keyword">ON</span> f.product_key = p.product_key
+<span class="keyword">JOIN</span> <span class="table-name">date_dim</span> d <span class="keyword">ON</span> f.date_key = d.date_key
+<span class="keyword">WHERE</span> d.year_month = '2024-01'
+<span class="keyword">GROUP BY</span> p.product_name;
+            </div>
+
+            <div class="tip-box">
+                <h4>Calculating Average Across Multiple Aggregation Levels</h4>
+                <p>When you need average inventory across BOTH time AND another dimension (like category), store <code>sum_daily_inventory</code> and <code>days_count</code> so you can calculate: <code>AVG = SUM(sum_daily_inventory) / SUM(days_count)</code></p>
+            </div>
+
+            <h3>💰 Real-World Example: Financial Portfolio Tracking</h3>
+            <p>Another classic use case for periodic snapshots is tracking financial account balances and portfolio values.</p>
+
+            <div class="example-box">
+                <h4>Business Scenario: WealthWise Investment Firm</h4>
+                <p><strong>WealthWise</strong> manages investment portfolios and needs daily snapshots to:</p>
+                <ul>
+                    <li>Track portfolio values for client reporting</li>
+                    <li>Calculate period-over-period performance</li>
+                    <li>Analyze asset allocation</li>
+                    <li>Compute regulatory metrics (average balance requirements)</li>
+                </ul>
+            </div>
+
+            <div class="diagram-container">
+                <div class="diagram-title">Portfolio Daily Snapshot with Embellishments</div>
+                <div class="star-diagram">
+                    <div class="dimension-row">
+                        <div class="dimension-table">DATE_DIM</div>
+                        <div class="dimension-table">CLIENT_DIM</div>
+                        <div class="dimension-table">ACCOUNT_DIM</div>
+                        <div class="dimension-table">ASSET_CLASS_DIM</div>
+                    </div>
+                    <div class="connector-line"></div>
+                    <div class="fact-table">
+                        <div class="table-name">PORTFOLIO_DAILY_SNAPSHOT</div>
+                        <div class="columns">
+                            date_key (FK)<br>
+                            client_key (FK)<br>
+                            account_key (FK)<br>
+                            asset_class_key (FK)<br>
+                            ─────────────────────<br>
+                            <em>-- Semi-Additive Status --</em><br>
+                            <strong>market_value</strong><br>
+                            <strong>cost_basis</strong><br>
+                            <strong>unrealized_gain_loss</strong><br>
+                            ─────────────────────<br>
+                            <em>-- Additive Activity --</em><br>
+                            <strong>deposits</strong><br>
+                            <strong>withdrawals</strong><br>
+                            <strong>dividends_received</strong><br>
+                            <strong>fees_charged</strong><br>
+                            ─────────────────────<br>
+                            <em>-- Period-to-Date (Semi-Additive) --</em><br>
+                            <strong>mtd_return_pct</strong><br>
+                            <strong>ytd_return_pct</strong><br>
+                            <strong>ytd_deposits</strong><br>
+                            <strong>ytd_withdrawals</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h4>Sample Portfolio Data for One Client Account</h4>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Asset Class</th>
+                        <th>Market Value</th>
+                        <th>Cost Basis</th>
+                        <th>Unrealized G/L</th>
+                        <th>Deposits</th>
+                        <th>YTD Return %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>2024-01-29</td><td>US Equities</td><td>$125,430</td><td>$100,000</td><td>$25,430</td><td>$0</td><td>3.2%</td></tr>
+                    <tr><td>2024-01-29</td><td>Bonds</td><td>$45,200</td><td>$50,000</td><td>($4,800)</td><td>$0</td><td>-1.5%</td></tr>
+                    <tr><td>2024-01-29</td><td>International</td><td>$32,150</td><td>$30,000</td><td>$2,150</td><td>$0</td><td>4.1%</td></tr>
+                    <tr><td>2024-01-30</td><td>US Equities</td><td>$127,890</td><td>$100,000</td><td>$27,890</td><td>$0</td><td>5.1%</td></tr>
+                    <tr><td>2024-01-30</td><td>Bonds</td><td>$45,050</td><td>$50,000</td><td>($4,950)</td><td>$0</td><td>-1.8%</td></tr>
+                    <tr><td>2024-01-30</td><td>International</td><td>$31,800</td><td>$30,000</td><td>$1,800</td><td>$0</td><td>3.8%</td></tr>
+                    <tr><td>2024-01-31</td><td>US Equities</td><td>$128,500</td><td>$105,000</td><td>$23,500</td><td>$5,000</td><td>5.2%</td></tr>
+                    <tr><td>2024-01-31</td><td>Bonds</td><td>$45,100</td><td>$50,000</td><td>($4,900)</td><td>$0</td><td>-1.7%</td></tr>
+                    <tr><td>2024-01-31</td><td>International</td><td>$32,000</td><td>$30,000</td><td>$2,000</td><td>$0</td><td>4.0%</td></tr>
+                </tbody>
+            </table>
+            <p><em>Notice: On 1/31, the client deposited $5,000 into US Equities. The cost_basis increased by $5,000, but market_value only increased by $610 (the $5,000 deposit + $610 market movement).</em></p>
+
+            <div class="schema-display">
+<span class="keyword">-- Query: Month-end portfolio summary by client and asset class</span>
+<span class="keyword">SELECT</span> 
+    c.client_name,
+    a.asset_class_name,
+    f.market_value,
+    f.cost_basis,
+    f.unrealized_gain_loss,
+    f.ytd_return_pct
+<span class="keyword">FROM</span> <span class="table-name">portfolio_daily_snapshot</span> f
+<span class="keyword">JOIN</span> <span class="table-name">client_dim</span> c <span class="keyword">ON</span> f.client_key = c.client_key
+<span class="keyword">JOIN</span> <span class="table-name">asset_class_dim</span> a <span class="keyword">ON</span> f.asset_class_key = a.asset_class_key
+<span class="keyword">JOIN</span> <span class="table-name">date_dim</span> d <span class="keyword">ON</span> f.date_key = d.date_key
+<span class="keyword">WHERE</span> d.is_month_end = 'Y'
+  <span class="keyword">AND</span> d.year_month = '2024-01'
+<span class="keyword">ORDER BY</span> c.client_name, f.market_value <span class="keyword">DESC</span>;
+            </div>
+
+            <div class="key-points">
+                <h4>📌 Periodic Snapshot Design Checklist</h4>
+                <ul>
+                    <li>✅ <strong>Define snapshot period</strong> — Daily, weekly, monthly?</li>
+                    <li>✅ <strong>Identify what's being sampled</strong> — Account, product, location?</li>
+                    <li>✅ <strong>Label semi-additive facts clearly</strong> — Document what can't be summed</li>
+                    <li>✅ <strong>Add embellishments for usability</strong> — Period-begin, period-end, sums for averaging</li>
+                    <li>✅ <strong>Include additive activity facts</strong> — What happened during the period</li>
+                    <li>✅ <strong>Handle Type 2 changes correctly</strong> — Only current surrogate key per natural key</li>
+                    <li>✅ <strong>Ensure density</strong> — One row per period per entity, even without activity</li>
+                </ul>
             </div>
 
             <div class="summary-box">
@@ -1355,6 +1852,444 @@
                 <p>Because of this, the dimension table may have <strong>more rows than the fact table</strong>. This is correct and expected! It can pose tuning challenges — star-join optimization may not be the most efficient approach for queries on accumulating snapshots.</p>
             </div>
 
+            <!-- DETAILED EXAMPLES SECTION -->
+            <h3>🛒 Real-World Example: E-Commerce Order Fulfillment</h3>
+            <p>Let's design an accumulating snapshot for an e-commerce company that needs to track orders from placement through delivery.</p>
+
+            <div class="example-box">
+                <h4>Business Scenario: FastShip E-Commerce</h4>
+                <p><strong>FastShip</strong> is an online retailer that wants to:</p>
+                <ul>
+                    <li>Track how long orders spend at each fulfillment stage</li>
+                    <li>Identify bottlenecks in the fulfillment process</li>
+                    <li>Measure on-time delivery performance</li>
+                    <li>Analyze which warehouses are most efficient</li>
+                </ul>
+            </div>
+
+            <h4>Step 1: Define the Process and Milestones</h4>
+            <div class="process-flow">
+                <span class="process-step">Order Placed</span>
+                <span class="process-arrow">→</span>
+                <span class="process-step">Payment Confirmed</span>
+                <span class="process-arrow">→</span>
+                <span class="process-step">Picked</span>
+                <span class="process-arrow">→</span>
+                <span class="process-step">Packed</span>
+                <span class="process-arrow">→</span>
+                <span class="process-step">Shipped</span>
+                <span class="process-arrow">→</span>
+                <span class="process-step">Delivered</span>
+            </div>
+
+            <div class="diagram-container">
+                <div class="diagram-title">FastShip Order Fulfillment Accumulating Snapshot</div>
+                <div class="star-diagram">
+                    <div class="dimension-row">
+                        <div class="dimension-table">DATE_DIM<br><small>(6 roles)</small></div>
+                        <div class="dimension-table">CUSTOMER_DIM</div>
+                        <div class="dimension-table">WAREHOUSE_DIM</div>
+                        <div class="dimension-table">SHIPPING_CARRIER_DIM</div>
+                    </div>
+                    <div class="connector-line"></div>
+                    <div class="fact-table">
+                        <div class="table-name">ORDER_FULFILLMENT_FACTS</div>
+                        <div class="columns">
+                            <em>-- Milestone Dates --</em><br>
+                            date_key_placed (FK)<br>
+                            date_key_payment_confirmed (FK)<br>
+                            date_key_picked (FK)<br>
+                            date_key_packed (FK)<br>
+                            date_key_shipped (FK)<br>
+                            date_key_delivered (FK)<br>
+                            <em>-- Entity & Context --</em><br>
+                            order_id (DD)<br>
+                            customer_key (FK)<br>
+                            warehouse_key (FK)<br>
+                            carrier_key (FK)<br>
+                            current_status_key (FK)<br>
+                            <em>-- Elapsed Time Facts --</em><br>
+                            <strong>hours_to_payment</strong><br>
+                            <strong>hours_to_pick</strong><br>
+                            <strong>hours_to_pack</strong><br>
+                            <strong>hours_to_ship</strong><br>
+                            <strong>hours_in_transit</strong><br>
+                            <strong>hours_total_fulfillment</strong><br>
+                            <em>-- Value Facts --</em><br>
+                            order_amount<br>
+                            shipping_cost<br>
+                            item_count
+                        </div>
+                    </div>
+                    <div class="connector-line"></div>
+                    <div class="dimension-row">
+                        <div class="dimension-table">ORDER_STATUS_DIM</div>
+                    </div>
+                </div>
+            </div>
+
+            <h4>Step 2: Watch a Row Evolve Over Time</h4>
+            <p>Here's how a single order's row changes as it progresses through fulfillment:</p>
+
+            <div class="diagram-container">
+                <div class="diagram-title">Order #ORD-98765 — Row Evolution</div>
+                <table class="data-table" style="font-size: 0.7rem;">
+                    <thead>
+                        <tr>
+                            <th>State</th>
+                            <th>date_key<br>_placed</th>
+                            <th>date_key<br>_payment</th>
+                            <th>date_key<br>_picked</th>
+                            <th>date_key<br>_packed</th>
+                            <th>date_key<br>_shipped</th>
+                            <th>date_key<br>_delivered</th>
+                            <th>hrs_to<br>_payment</th>
+                            <th>hrs_to<br>_pick</th>
+                            <th>hrs_to<br>_pack</th>
+                            <th>hrs_to<br>_ship</th>
+                            <th>hrs_in<br>_transit</th>
+                            <th>current<br>_status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background:#dbeafe">
+                            <td><strong>Placed</strong><br>Jan 15, 9:00am</td>
+                            <td style="background:#dcfce7">20240115</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>Placed</td>
+                        </tr>
+                        <tr style="background:#dcfce7">
+                            <td><strong>Payment OK</strong><br>Jan 15, 9:15am</td>
+                            <td>20240115</td>
+                            <td style="background:#dcfce7">20240115</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td style="background:#dcfce7">0.25</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>Confirmed</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Picked</strong><br>Jan 15, 2:00pm</td>
+                            <td>20240115</td>
+                            <td>20240115</td>
+                            <td style="background:#dcfce7">20240115</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0.25</td>
+                            <td style="background:#dcfce7">4.75</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>Picked</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Packed</strong><br>Jan 15, 4:30pm</td>
+                            <td>20240115</td>
+                            <td>20240115</td>
+                            <td>20240115</td>
+                            <td style="background:#dcfce7">20240115</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0.25</td>
+                            <td>4.75</td>
+                            <td style="background:#dcfce7">2.5</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>Packed</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Shipped</strong><br>Jan 16, 8:00am</td>
+                            <td>20240115</td>
+                            <td>20240115</td>
+                            <td>20240115</td>
+                            <td>20240115</td>
+                            <td style="background:#dcfce7">20240116</td>
+                            <td>0</td>
+                            <td>0.25</td>
+                            <td>4.75</td>
+                            <td>2.5</td>
+                            <td style="background:#dcfce7">15.5</td>
+                            <td>0</td>
+                            <td>Shipped</td>
+                        </tr>
+                        <tr style="background:#fef3c7">
+                            <td><strong>Delivered</strong><br>Jan 18, 2:00pm</td>
+                            <td>20240115</td>
+                            <td>20240115</td>
+                            <td>20240115</td>
+                            <td>20240115</td>
+                            <td>20240116</td>
+                            <td style="background:#dcfce7">20240118</td>
+                            <td>0.25</td>
+                            <td>4.75</td>
+                            <td>2.5</td>
+                            <td>15.5</td>
+                            <td style="background:#dcfce7">54</td>
+                            <td>Delivered</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p style="text-align: center; margin-top: 1rem; color: var(--text-muted); font-size: 0.85rem;">
+                    <span style="background:#dcfce7; padding: 2px 8px; border-radius: 3px;">Green</span> = Value changed in this update
+                </p>
+            </div>
+
+            <h4>Step 3: SQL Queries for Process Analysis</h4>
+            <div class="schema-display">
+<span class="keyword">-- Query 1: Average fulfillment time by warehouse</span>
+<span class="keyword">SELECT</span> 
+    w.warehouse_name,
+    w.warehouse_region,
+    <span class="keyword">COUNT</span>(*) <span class="keyword">AS</span> orders_completed,
+    <span class="keyword">ROUND</span>(<span class="keyword">AVG</span>(f.hours_total_fulfillment), 1) <span class="keyword">AS</span> avg_hours_to_deliver,
+    <span class="keyword">ROUND</span>(<span class="keyword">AVG</span>(f.hours_to_pick), 1) <span class="keyword">AS</span> avg_hours_to_pick,
+    <span class="keyword">ROUND</span>(<span class="keyword">AVG</span>(f.hours_to_pack), 1) <span class="keyword">AS</span> avg_hours_to_pack,
+    <span class="keyword">ROUND</span>(<span class="keyword">AVG</span>(f.hours_to_ship), 1) <span class="keyword">AS</span> avg_hours_to_ship
+<span class="keyword">FROM</span> <span class="table-name">order_fulfillment_facts</span> f
+<span class="keyword">JOIN</span> <span class="table-name">warehouse_dim</span> w <span class="keyword">ON</span> f.warehouse_key = w.warehouse_key
+<span class="keyword">JOIN</span> <span class="table-name">date_dim</span> d <span class="keyword">ON</span> f.date_key_delivered = d.date_key
+<span class="keyword">WHERE</span> d.year_month = '2024-01'
+  <span class="keyword">AND</span> f.date_key_delivered != 0  <span class="keyword">-- Only completed orders</span>
+<span class="keyword">GROUP BY</span> w.warehouse_name, w.warehouse_region
+<span class="keyword">ORDER BY</span> avg_hours_to_deliver;
+            </div>
+
+            <div class="schema-display">
+<span class="keyword">-- Query 2: Find bottlenecks — which stage takes longest?</span>
+<span class="keyword">SELECT</span> 
+    'Payment to Pick' <span class="keyword">AS</span> stage,
+    <span class="keyword">ROUND</span>(<span class="keyword">AVG</span>(hours_to_pick), 1) <span class="keyword">AS</span> avg_hours
+<span class="keyword">FROM</span> <span class="table-name">order_fulfillment_facts</span>
+<span class="keyword">WHERE</span> date_key_delivered != 0
+<span class="keyword">UNION ALL</span>
+<span class="keyword">SELECT</span> 
+    'Pick to Pack' <span class="keyword">AS</span> stage,
+    <span class="keyword">ROUND</span>(<span class="keyword">AVG</span>(hours_to_pack), 1) <span class="keyword">AS</span> avg_hours
+<span class="keyword">FROM</span> <span class="table-name">order_fulfillment_facts</span>
+<span class="keyword">WHERE</span> date_key_delivered != 0
+<span class="keyword">UNION ALL</span>
+<span class="keyword">SELECT</span> 
+    'Pack to Ship' <span class="keyword">AS</span> stage,
+    <span class="keyword">ROUND</span>(<span class="keyword">AVG</span>(hours_to_ship), 1) <span class="keyword">AS</span> avg_hours
+<span class="keyword">FROM</span> <span class="table-name">order_fulfillment_facts</span>
+<span class="keyword">WHERE</span> date_key_delivered != 0
+<span class="keyword">UNION ALL</span>
+<span class="keyword">SELECT</span> 
+    'Ship to Deliver' <span class="keyword">AS</span> stage,
+    <span class="keyword">ROUND</span>(<span class="keyword">AVG</span>(hours_in_transit), 1) <span class="keyword">AS</span> avg_hours
+<span class="keyword">FROM</span> <span class="table-name">order_fulfillment_facts</span>
+<span class="keyword">WHERE</span> date_key_delivered != 0
+<span class="keyword">ORDER BY</span> avg_hours <span class="keyword">DESC</span>;
+            </div>
+
+            <div class="schema-display">
+<span class="keyword">-- Query 3: Orders currently stuck at each stage</span>
+<span class="keyword">SELECT</span> 
+    s.status_name <span class="keyword">AS</span> current_stage,
+    <span class="keyword">COUNT</span>(*) <span class="keyword">AS</span> orders_stuck,
+    <span class="keyword">ROUND</span>(<span class="keyword">AVG</span>(
+        <span class="keyword">CASE</span> <span class="keyword">WHEN</span> s.status_name = 'Placed' <span class="keyword">THEN</span> hours_to_payment
+             <span class="keyword">WHEN</span> s.status_name = 'Confirmed' <span class="keyword">THEN</span> hours_to_pick
+             <span class="keyword">WHEN</span> s.status_name = 'Picked' <span class="keyword">THEN</span> hours_to_pack
+             <span class="keyword">WHEN</span> s.status_name = 'Packed' <span class="keyword">THEN</span> hours_to_ship
+             <span class="keyword">WHEN</span> s.status_name = 'Shipped' <span class="keyword">THEN</span> hours_in_transit
+        <span class="keyword">END</span>
+    ), 1) <span class="keyword">AS</span> avg_hours_waiting
+<span class="keyword">FROM</span> <span class="table-name">order_fulfillment_facts</span> f
+<span class="keyword">JOIN</span> <span class="table-name">order_status_dim</span> s <span class="keyword">ON</span> f.current_status_key = s.status_key
+<span class="keyword">WHERE</span> f.date_key_delivered = 0  <span class="keyword">-- Not yet delivered</span>
+<span class="keyword">GROUP BY</span> s.status_name
+<span class="keyword">ORDER BY</span> orders_stuck <span class="keyword">DESC</span>;
+            </div>
+
+            <h3>🏥 Real-World Example: Healthcare Insurance Claims</h3>
+            <p>Insurance claims processing is a perfect use case for accumulating snapshots. Claims move through multiple review stages before final payment.</p>
+
+            <div class="example-box">
+                <h4>Business Scenario: HealthFirst Insurance</h4>
+                <p><strong>HealthFirst</strong> processes medical claims and needs to:</p>
+                <ul>
+                    <li>Track claim processing times for regulatory compliance</li>
+                    <li>Identify claims stuck in review</li>
+                    <li>Measure adjuster productivity</li>
+                    <li>Analyze denial rates by stage</li>
+                </ul>
+            </div>
+
+            <div class="process-flow">
+                <span class="process-step">Received</span>
+                <span class="process-arrow">→</span>
+                <span class="process-step">Validated</span>
+                <span class="process-arrow">→</span>
+                <span class="process-step">Adjudicated</span>
+                <span class="process-arrow">→</span>
+                <span class="process-step">Approved/Denied</span>
+                <span class="process-arrow">→</span>
+                <span class="process-step">Paid/Closed</span>
+            </div>
+
+            <div class="diagram-container">
+                <div class="diagram-title">Insurance Claim Processing Accumulating Snapshot</div>
+                <div class="star-diagram">
+                    <div class="dimension-row">
+                        <div class="dimension-table">DATE_DIM<br><small>(5 roles)</small></div>
+                        <div class="dimension-table">MEMBER_DIM</div>
+                        <div class="dimension-table">PROVIDER_DIM</div>
+                        <div class="dimension-table">PROCEDURE_DIM</div>
+                    </div>
+                    <div class="connector-line"></div>
+                    <div class="fact-table">
+                        <div class="table-name">CLAIM_PROCESSING_FACTS</div>
+                        <div class="columns">
+                            <em>-- Milestone Dates --</em><br>
+                            date_key_received (FK)<br>
+                            date_key_validated (FK)<br>
+                            date_key_adjudicated (FK)<br>
+                            date_key_decision (FK)<br>
+                            date_key_paid (FK)<br>
+                            <em>-- Entity & Context --</em><br>
+                            claim_id (DD)<br>
+                            member_key (FK)<br>
+                            provider_key (FK)<br>
+                            procedure_key (FK)<br>
+                            adjuster_key (FK)<br>
+                            claim_status_key (FK)<br>
+                            <em>-- Elapsed Time Facts --</em><br>
+                            <strong>days_to_validate</strong><br>
+                            <strong>days_to_adjudicate</strong><br>
+                            <strong>days_to_decision</strong><br>
+                            <strong>days_to_payment</strong><br>
+                            <strong>days_total_processing</strong><br>
+                            <em>-- Value Facts --</em><br>
+                            claim_amount_submitted<br>
+                            claim_amount_approved<br>
+                            amount_paid<br>
+                            member_responsibility
+                        </div>
+                    </div>
+                    <div class="connector-line"></div>
+                    <div class="dimension-row">
+                        <div class="dimension-table">ADJUSTER_DIM</div>
+                        <div class="dimension-table">CLAIM_STATUS_DIM</div>
+                    </div>
+                </div>
+            </div>
+
+            <h4>Sample Claims Data</h4>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Claim ID</th>
+                        <th>Received</th>
+                        <th>Validated</th>
+                        <th>Adjudicated</th>
+                        <th>Decision</th>
+                        <th>Paid</th>
+                        <th>Days Total</th>
+                        <th>Submitted</th>
+                        <th>Approved</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>CLM-001</td><td>1/10</td><td>1/11</td><td>1/15</td><td>1/16</td><td>1/20</td><td>10</td><td>$1,500</td><td>$1,200</td><td>Paid</td></tr>
+                    <tr><td>CLM-002</td><td>1/12</td><td>1/13</td><td>1/18</td><td>1/19</td><td>0</td><td>—</td><td>$3,200</td><td>$0</td><td>Denied</td></tr>
+                    <tr><td>CLM-003</td><td>1/14</td><td>1/15</td><td>0</td><td>0</td><td>0</td><td>—</td><td>$850</td><td>$0</td><td>In Adjudication</td></tr>
+                    <tr><td>CLM-004</td><td>1/15</td><td>1/16</td><td>1/17</td><td>1/18</td><td>1/22</td><td>7</td><td>$2,100</td><td>$2,100</td><td>Paid</td></tr>
+                    <tr><td>CLM-005</td><td>1/16</td><td>0</td><td>0</td><td>0</td><td>0</td><td>—</td><td>$4,500</td><td>$0</td><td>In Validation</td></tr>
+                </tbody>
+            </table>
+            <p><em>Notice: Rows with 0 for a date_key indicate that milestone hasn't been reached yet. CLM-002 was denied, so it has a decision date but no payment date.</em></p>
+
+            <div class="schema-display">
+<span class="keyword">-- Query: Claims processing SLA compliance</span>
+<span class="keyword">-- Regulatory requirement: 95% of claims processed within 30 days</span>
+<span class="keyword">SELECT</span> 
+    d.year_month,
+    <span class="keyword">COUNT</span>(*) <span class="keyword">AS</span> total_claims_closed,
+    <span class="keyword">SUM</span>(<span class="keyword">CASE WHEN</span> f.days_total_processing <= 30 <span class="keyword">THEN</span> 1 <span class="keyword">ELSE</span> 0 <span class="keyword">END</span>) <span class="keyword">AS</span> within_sla,
+    <span class="keyword">ROUND</span>(
+        100.0 * <span class="keyword">SUM</span>(<span class="keyword">CASE WHEN</span> f.days_total_processing <= 30 <span class="keyword">THEN</span> 1 <span class="keyword">ELSE</span> 0 <span class="keyword">END</span>) 
+        / <span class="keyword">COUNT</span>(*), 1
+    ) <span class="keyword">AS</span> sla_compliance_pct
+<span class="keyword">FROM</span> <span class="table-name">claim_processing_facts</span> f
+<span class="keyword">JOIN</span> <span class="table-name">date_dim</span> d <span class="keyword">ON</span> f.date_key_paid = d.date_key
+<span class="keyword">WHERE</span> f.date_key_paid != 0  <span class="keyword">-- Only completed (paid/denied) claims</span>
+<span class="keyword">GROUP BY</span> d.year_month
+<span class="keyword">ORDER BY</span> d.year_month;
+            </div>
+
+            <div class="tip-box">
+                <h4>Combining with Transaction Fact Table</h4>
+                <p>A <strong>companion transaction fact table</strong> would track each status change event (one row per status change). This lets you analyze:</p>
+                <ul>
+                    <li><strong>Transaction Star:</strong> "How many claims were validated on Monday?" (volume by stage)</li>
+                    <li><strong>Accumulating Snapshot:</strong> "How long does validation take on average?" (elapsed time)</li>
+                </ul>
+            </div>
+
+            <h3>🔄 Step-by-Step: Building an Accumulating Snapshot ETL</h3>
+            <p>Here's a simplified view of how the ETL process works for an accumulating snapshot:</p>
+
+            <div class="timeline">
+                <div class="timeline-item">
+                    <h5>Step 1: Initial Insert</h5>
+                    <p>When a new entity (order, claim, application) is created in the source system, INSERT a new row into the fact table. Set the first milestone date, leave other dates as 0 (or a special "Not Yet" date key), and initialize elapsed time facts to 0.</p>
+                </div>
+                <div class="timeline-item">
+                    <h5>Step 2: Daily "Aging" Update</h5>
+                    <p>Each day, UPDATE all in-progress rows to increment the current stage's elapsed time. For example, if an order is "Picked" but not yet "Packed", increment <code>hours_to_pack</code> by 24.</p>
+                </div>
+                <div class="timeline-item">
+                    <h5>Step 3: Milestone Update</h5>
+                    <p>When an entity reaches a new milestone, UPDATE the row: set the milestone date key, finalize the previous stage's elapsed time, and begin tracking the new stage.</p>
+                </div>
+                <div class="timeline-item">
+                    <h5>Step 4: Handle Reversals</h5>
+                    <p>If an entity returns to a prior stage (e.g., order sent back to warehouse), resume incrementing that stage's elapsed time. Work with business to define rules for how dates should be handled.</p>
+                </div>
+            </div>
+
+            <div class="warning-box">
+                <h4>ETL Complexity Warning</h4>
+                <p>Accumulating snapshots are the <strong>most complex</strong> fact tables to load because they require UPDATEs rather than just INSERTs. Plan your ETL carefully:</p>
+                <ul>
+                    <li>Use efficient UPDATE strategies (indexes on natural keys)</li>
+                    <li>Consider batch processing for "aging" updates</li>
+                    <li>Log all changes for audit purposes</li>
+                    <li>Have rollback procedures for failed loads</li>
+                </ul>
+            </div>
+
+            <div class="key-points">
+                <h4>📌 Accumulating Snapshot Design Checklist</h4>
+                <ul>
+                    <li>✅ <strong>Identify the process and entity</strong> — What moves through stages? (order, claim, ticket)</li>
+                    <li>✅ <strong>Define major milestones</strong> — Don't track every status, just key business events</li>
+                    <li>✅ <strong>Create multiple date role-playing dimensions</strong> — One per milestone</li>
+                    <li>✅ <strong>Add elapsed time facts</strong> — Track time at each stage</li>
+                    <li>✅ <strong>Handle "Not Yet" dates</strong> — Use 0 or a special date key for incomplete milestones</li>
+                    <li>✅ <strong>Plan for nonlinear processes</strong> — Define rules for reversals and skipped stages</li>
+                    <li>✅ <strong>Design ETL for UPDATEs</strong> — More complex than insert-only fact tables</li>
+                    <li>✅ <strong>Consider a companion transaction star</strong> — For volume analysis by stage</li>
+                </ul>
+            </div>
+
             <div class="summary-box">
                 <h3>🔑 Accumulating Snapshot Key Takeaways</h3>
                 <ul>
@@ -1473,6 +2408,166 @@
                 <h4>Remember: You Can Combine Them!</h4>
                 <p>It's not an either/or decision. A single business process may need <strong>two or even all three</strong> types of fact tables working together. The inventory process, for example, can benefit from a transaction star (track shipments), a periodic snapshot (track levels), and an accumulating snapshot (track order fulfillment stages).</p>
             </div>
+
+            <!-- COMPREHENSIVE CASE STUDY -->
+            <h3>🏭 Comprehensive Case Study: All Three Working Together</h3>
+            <p>Let's see how a manufacturing company uses all three fact table types to analyze their production and sales operations.</p>
+
+            <div class="example-box">
+                <h4>Business Scenario: PrecisionParts Manufacturing</h4>
+                <p><strong>PrecisionParts</strong> manufactures industrial components. They need to answer different types of questions:</p>
+                <ul>
+                    <li><strong>Volume Questions:</strong> "How many units did we ship last month?"</li>
+                    <li><strong>Status Questions:</strong> "What's our current inventory level?"</li>
+                    <li><strong>Process Questions:</strong> "How long does it take to fulfill an order?"</li>
+                </ul>
+                <p>Each question type needs a different fact table!</p>
+            </div>
+
+            <div class="diagram-container">
+                <div class="diagram-title">Three Fact Tables for One Business Process</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; text-align: center;">
+                    <div style="background: #dbeafe; padding: 1.5rem; border-radius: 8px;">
+                        <div style="font-weight: 700; color: #1e40af; margin-bottom: 0.5rem;">📊 TRANSACTION</div>
+                        <div style="font-size: 0.9rem; font-weight: 600;">SHIPMENT_FACTS</div>
+                        <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.5rem;">
+                            One row per shipment<br>
+                            Tracks: quantities, revenue<br>
+                            <strong>INSERT only</strong>
+                        </div>
+                    </div>
+                    <div style="background: #dcfce7; padding: 1.5rem; border-radius: 8px;">
+                        <div style="font-weight: 700; color: #166534; margin-bottom: 0.5rem;">📈 PERIODIC SNAPSHOT</div>
+                        <div style="font-size: 0.9rem; font-weight: 600;">INVENTORY_SNAPSHOT</div>
+                        <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.5rem;">
+                            One row per product per day<br>
+                            Tracks: quantities on hand<br>
+                            <strong>INSERT only (dense)</strong>
+                        </div>
+                    </div>
+                    <div style="background: #fae8ff; padding: 1.5rem; border-radius: 8px;">
+                        <div style="font-weight: 700; color: #86198f; margin-bottom: 0.5rem;">⏱️ ACCUMULATING</div>
+                        <div style="font-size: 0.9rem; font-weight: 600;">ORDER_FULFILLMENT</div>
+                        <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.5rem;">
+                            One row per order<br>
+                            Tracks: process timing<br>
+                            <strong>INSERT + UPDATE</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h4>Questions Each Fact Table Answers</h4>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Business Question</th>
+                        <th>Fact Table</th>
+                        <th>Why This Table?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>"How many units did we ship to California last month?"</td>
+                        <td><span class="badge badge-transaction">Transaction</span></td>
+                        <td>Aggregating shipment events by region and time</td>
+                    </tr>
+                    <tr>
+                        <td>"What was our total revenue by product line?"</td>
+                        <td><span class="badge badge-transaction">Transaction</span></td>
+                        <td>Summing dollar amounts from sales events</td>
+                    </tr>
+                    <tr>
+                        <td>"What's our current inventory level by warehouse?"</td>
+                        <td><span class="badge badge-snapshot">Snapshot</span></td>
+                        <td>Status measurement at a point in time</td>
+                    </tr>
+                    <tr>
+                        <td>"What was our average inventory last quarter?"</td>
+                        <td><span class="badge badge-snapshot">Snapshot</span></td>
+                        <td>Semi-additive balance averaged over time</td>
+                    </tr>
+                    <tr>
+                        <td>"How long does it take to fulfill orders?"</td>
+                        <td><span class="badge badge-accumulating">Accumulating</span></td>
+                        <td>Elapsed time between order and shipment</td>
+                    </tr>
+                    <tr>
+                        <td>"Where are the bottlenecks in our process?"</td>
+                        <td><span class="badge badge-accumulating">Accumulating</span></td>
+                        <td>Time spent at each processing stage</td>
+                    </tr>
+                    <tr>
+                        <td>"How many orders are stuck in picking?"</td>
+                        <td><span class="badge badge-accumulating">Accumulating</span></td>
+                        <td>Current status of in-progress entities</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>Decision Flowchart: Choosing the Right Fact Table</h4>
+            <div class="diagram-container">
+                <div class="diagram-title">🤔 Which Fact Table Should I Use?</div>
+                <div style="font-family: 'Fira Code', monospace; font-size: 0.85rem; line-height: 1.8;">
+<pre style="margin: 0; padding: 1rem; background: white; border-radius: 8px; overflow-x: auto;">
+┌─────────────────────────────────────────────────────────────┐
+│                  START: What do you want to analyze?         │
+└─────────────────────────────────────────────────────────────┘
+                               │
+            ┌──────────────────┼──────────────────┐
+            ▼                  ▼                  ▼
+    ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
+    │   EVENTS or   │  │   STATUS or   │  │   PROCESS     │
+    │   ACTIVITIES  │  │   LEVELS      │  │   PROGRESS    │
+    │               │  │               │  │               │
+    │ • Sales       │  │ • Balances    │  │ • Order flow  │
+    │ • Shipments   │  │ • Inventory   │  │ • Claim stages│
+    │ • Calls       │  │ • Headcount   │  │ • Ticket life │
+    └───────┬───────┘  └───────┬───────┘  └───────┬───────┘
+            │                  │                  │
+            ▼                  ▼                  ▼
+    ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
+    │  TRANSACTION  │  │   PERIODIC    │  │  ACCUMULATING │
+    │  FACT TABLE   │  │   SNAPSHOT    │  │   SNAPSHOT    │
+    │               │  │               │  │               │
+    │ • Sparse      │  │ • Dense       │  │ • One row per │
+    │ • Additive    │  │ • Semi-add    │  │   entity      │
+    │ • Insert only │  │ • Insert only │  │ • Updates     │
+    └───────────────┘  └───────────────┘  └───────────────┘
+</pre>
+                </div>
+            </div>
+
+            <h4>Quick Reference: Fact Table Selection Guide</h4>
+            <div class="key-points">
+                <h4>📌 Use TRANSACTION when you need to...</h4>
+                <ul>
+                    <li>Count or sum activities (orders, shipments, calls)</li>
+                    <li>Drill down to individual events</li>
+                    <li>Aggregate by any combination of dimensions</li>
+                    <li>Answer "how many" or "how much" questions</li>
+                </ul>
+            </div>
+
+            <div class="key-points" style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); border-left-color: var(--accent-emerald);">
+                <h4 style="color: #166534;">📌 Use PERIODIC SNAPSHOT when you need to...</h4>
+                <ul>
+                    <li>Track status or levels over time (inventory, balances)</li>
+                    <li>Compare status at different points in time</li>
+                    <li>Calculate averages, minimums, or maximums over periods</li>
+                    <li>Answer "what was the level" questions</li>
+                </ul>
+            </div>
+
+            <div class="key-points" style="background: linear-gradient(135deg, #fae8ff 0%, #f5d0fe 100%); border-left-color: #a855f7;">
+                <h4 style="color: #86198f;">📌 Use ACCUMULATING SNAPSHOT when you need to...</h4>
+                <ul>
+                    <li>Track items through defined processing stages</li>
+                    <li>Measure elapsed time between milestones</li>
+                    <li>Identify bottlenecks and process inefficiencies</li>
+                    <li>Answer "how long" or "where are delays" questions</li>
+                </ul>
+            </div>
         </section>
 
         <!-- SECTION: Summary -->
@@ -1531,6 +2626,140 @@
                 </ol>
             </div>
 
+            <h3>📚 Glossary of Key Terms</h3>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Term</th>
+                        <th>Definition</th>
+                        <th>Example</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Grain</strong></td>
+                        <td>The level of detail represented by a single row in a fact table</td>
+                        <td>"One row per order line item" or "Daily balance by account"</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Additive Fact</strong></td>
+                        <td>A measurement that can be summed across ALL dimensions</td>
+                        <td>Sales amount, quantity sold, shipping cost</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Semi-Additive Fact</strong></td>
+                        <td>A measurement that can be summed across SOME dimensions (not time)</td>
+                        <td>Account balance, inventory level, portfolio value</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Non-Additive Fact</strong></td>
+                        <td>A measurement that cannot be meaningfully summed</td>
+                        <td>Ratios, percentages, unit prices</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Sparse</strong></td>
+                        <td>Rows exist only when events occur (transaction tables)</td>
+                        <td>No order on Tuesday = no row for Tuesday</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Dense</strong></td>
+                        <td>Rows exist for every period regardless of activity (snapshots)</td>
+                        <td>Row for every day, even if balance unchanged</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Degenerate Dimension</strong></td>
+                        <td>A dimension key stored directly in the fact table (no separate table)</td>
+                        <td>Order number, invoice number, transaction ID</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Surrogate Key</strong></td>
+                        <td>A system-generated key used to join fact and dimension tables</td>
+                        <td>customer_key = 12345 (not the business customer ID)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Role-Playing Dimension</strong></td>
+                        <td>Same dimension used multiple times with different meanings</td>
+                        <td>DATE_DIM as order_date, ship_date, delivery_date</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Milestone</strong></td>
+                        <td>A significant stage in a process (accumulating snapshots)</td>
+                        <td>Submitted, Approved, Shipped, Delivered</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Lag</strong></td>
+                        <td>Elapsed time between two milestones</td>
+                        <td>Days from submission to approval</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Type 2 SCD</strong></td>
+                        <td>Slowly Changing Dimension that creates new rows for changes</td>
+                        <td>Customer moves → new row with new address, old row preserved</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>🎯 Quick Reference Card</h3>
+            <div class="diagram-container">
+                <div class="diagram-title">Fact Table Cheat Sheet — Print This!</div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                    <div style="background: #dbeafe; padding: 1rem; border-radius: 8px; border: 2px solid #3b82f6;">
+                        <h4 style="margin: 0 0 0.5rem 0; color: #1e40af; font-size: 1rem;">📊 TRANSACTION</h4>
+                        <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.8rem; line-height: 1.6;">
+                            <li><strong>Purpose:</strong> Track events</li>
+                            <li><strong>Grain:</strong> One row per event</li>
+                            <li><strong>Density:</strong> SPARSE</li>
+                            <li><strong>Facts:</strong> Additive</li>
+                            <li><strong>Updates:</strong> Insert only</li>
+                            <li><strong>Date keys:</strong> One</li>
+                        </ul>
+                        <div style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(255,255,255,0.5); border-radius: 4px; font-size: 0.75rem;">
+                            <strong>Best for:</strong> "How many?" "How much?"
+                        </div>
+                    </div>
+                    <div style="background: #dcfce7; padding: 1rem; border-radius: 8px; border: 2px solid #22c55e;">
+                        <h4 style="margin: 0 0 0.5rem 0; color: #166534; font-size: 1rem;">📈 PERIODIC SNAPSHOT</h4>
+                        <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.8rem; line-height: 1.6;">
+                            <li><strong>Purpose:</strong> Track status</li>
+                            <li><strong>Grain:</strong> Entity + period</li>
+                            <li><strong>Density:</strong> DENSE</li>
+                            <li><strong>Facts:</strong> Semi-additive</li>
+                            <li><strong>Updates:</strong> Insert only</li>
+                            <li><strong>Date keys:</strong> One (period)</li>
+                        </ul>
+                        <div style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(255,255,255,0.5); border-radius: 4px; font-size: 0.75rem;">
+                            <strong>Best for:</strong> "What level?" "Average over time?"
+                        </div>
+                    </div>
+                    <div style="background: #fae8ff; padding: 1rem; border-radius: 8px; border: 2px solid #a855f7;">
+                        <h4 style="margin: 0 0 0.5rem 0; color: #86198f; font-size: 1rem;">⏱️ ACCUMULATING SNAPSHOT</h4>
+                        <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.8rem; line-height: 1.6;">
+                            <li><strong>Purpose:</strong> Track process</li>
+                            <li><strong>Grain:</strong> One row per entity</li>
+                            <li><strong>Density:</strong> N/A</li>
+                            <li><strong>Facts:</strong> Elapsed time</li>
+                            <li><strong>Updates:</strong> INSERT + UPDATE</li>
+                            <li><strong>Date keys:</strong> Multiple</li>
+                        </ul>
+                        <div style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(255,255,255,0.5); border-radius: 4px; font-size: 0.75rem;">
+                            <strong>Best for:</strong> "How long?" "Where are delays?"
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>⚠️ Common Mistakes to Avoid</h3>
+            <div class="warning-box">
+                <h4>Top 5 Rookie Mistakes</h4>
+                <ol>
+                    <li><strong>Storing balance with transactions</strong> — Always use a separate snapshot table for status measurements</li>
+                    <li><strong>Summing semi-additive facts across time</strong> — Balance + Balance ≠ Meaningful number. Use AVG, MIN, MAX instead</li>
+                    <li><strong>Storing ratios in fact tables</strong> — Break them into additive components (numerator and denominator)</li>
+                    <li><strong>Using natural keys with Type 2 dimensions</strong> — Always use surrogate keys to avoid double-counting</li>
+                    <li><strong>Making snapshots sparse</strong> — Snapshots should be DENSE (one row per period, even without activity)</li>
+                </ol>
+            </div>
+
             <h3>Further Reading</h3>
             <p>For additional examples and deeper dives into these topics, consult:</p>
             <ul>
@@ -1538,6 +2767,12 @@
                 <li><em>Data Warehouse Design Solutions</em> by Chris Adamson and Mike Venerable</li>
                 <li><em>Mastering Data Warehouse Aggregates</em> by Chris Adamson</li>
             </ul>
+
+            <div class="summary-box" style="margin-top: 2rem;">
+                <h3>🎉 Congratulations!</h3>
+                <p>You've completed Chapter 11. You now understand the three fundamental types of fact tables and when to use each one. This knowledge will serve you well throughout your career in data warehousing and dimensional modeling.</p>
+                <p style="margin-bottom: 0;"><strong>Next Steps:</strong> Practice by designing fact tables for a business process you're familiar with. Ask yourself: "What questions do I need to answer?" Then choose the right fact table type accordingly!</p>
+            </div>
         </section>
     </main>
 
